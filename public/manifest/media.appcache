@@ -1,0 +1,42 @@
+CACHE MANIFEST
+# Offline Web applications 지원중단!
+# https://html.spec.whatwg.org/multipage/offline.html#offline
+# makestory-181215-6 (캐쉬된 리소스를 다시 받으려면, appcache 파일 내부 수정이 있어야한다. 수정된 파일 날짜만으로는 업데이트가 발생되지 않는다.)
+# manifest="" appcache 파일의 경로가 캐시 적용 스코프가 된다.
+# manifest="" 속성을 사용하는 페이지는 CACHE 목록에 없더라도 자동 캐싱된다. (페이지 수정이 있을 경우, appcache 파일 내부 수정을 통해 캐시 업데이트 되도록 해야함)
+CACHE:
+favicon.ico
+fonts/NanumGothic-Regular.eot
+fonts/NanumGothic-Regular.woff2
+fonts/NanumGothic-Regular.woff
+fonts/NanumGothic-Regular.ttf
+images/mobile76x76.png
+images/mobile120x120.png
+images/mobile152x152.png
+images/meta270x270.png
+css/font.min.css
+css/api.min.css
+js/api.min.js
+js/makestory.common.min.js
+
+NETWORK:
+# Use from network if available
+# 무조건 서버 연결이 필요한 리소스 리스트다. 
+# 캐쉬되지 않았으면 하는 리소스는 NETWORK 리스트에 추가한다.
+# 와일드카드(*)를 쓸 수 있다.
+# css/
+# js/
+# images/
+# session
+# media/
+# data/
+# /
+*
+
+FALLBACK:
+# Fallback content
+# 리소스에 접근할 수 없을때 필요한 폴백(fallback, 대안)를 정의하는 섹션이다.
+# 필수 세션은 아니다. 
+# 첫 URI는 리소스고 두번째가 폴백이다.
+# 와일드카드(*) 사용 가능하다.
+media media/offline

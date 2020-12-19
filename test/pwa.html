@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, width=device-width, minimal-ui" />
+<title>PWA Test</title>
+
+<!-- web app manifest //-->
+<!-- .webmanifest 확장자는 W3C manifest 명세에 명시적으로 언급 //-->
+<!-- https://www.w3.org/TR/appmanifest/ //-->
+<!-- https://manifest-validator.appspot.com/ //-->
+<!-- Chrome requires a 192x192px and a 512x512px icon -->
+<link rel="manifest" href="/manifest/manifest.webmanifest">
+
+<!-- Fallback application metadata for legacy browsers -->
+<!-- iOS의 Safari용 Add to Homescreen 요소 //-->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="PWA Test">
+<link rel="apple-touch-icon" href="/images/mobile76x76.png">
+<link rel="apple-touch-startup-image" href="/images/mobile76x76.png">
+<!-- Windows용 타일 아이콘 //-->
+<meta name="msapplication-TileImage" content="/images/mobile76x76.png">
+<meta name="msapplication-TileColor" content="#2F3BA2">
+
+<!-- manifest 브라우저별 호환성을 맞춰주는 google 에서 제공되는 라이브러리 //-->
+<!--script async src="path/to/pwacompat.min.js"></script-->
+
+<!-- CSS //-->
+<style type="text/css">
+.wrap-group {
+	margin: 20px 0;
+}
+.wrap-group h1, .wrap-group p {
+	padding: 8px 0;
+}
+</style>
+</head>
+<body>
+<header>
+	<div>
+		<h2>PWA Test</h2>
+		<h3>Progressive Web App</h3>
+	</div>
+</header>
+<section>
+	<article>
+		<h1>Push Test</h1>
+		<p>(<a href="https://caniuse.com/#feat=push-api" target="_blank">push api 브라우저 지원현황</a>)</p>
+		<button id="button_push" disabled="disabled">Loading..</button>
+		<p>* 브라우저 알림 허용 + 서버 푸시 사용자등록 여부</p>
+	</article>
+	<article>
+		<h1>Cache(ServiceWorker) Test</h1>
+		<p>(<a href="https://caniuse.com/#feat=serviceworkers" target="_blank">service worker 브라우저 지원현황</a>)</p>
+		<button id="button_update">serviceworker update</button>
+		<button id="button_delete">serviceworker delete</button>
+		<button id="button_cache" disabled="disabled">cache article(캐시에 데이터 추가/삭제제어)</button>
+	</article>
+	<article>
+		<h1>Web App Manifest Test</h1>
+		<p>(<a href="https://caniuse.com/#feat=web-app-manifest" target="_blank">web app manifest 브라우저 지원현황</a>)</p>
+		<button id="button_manifest_install" disabled="disabled">install</button>
+	</article>
+	<article>
+		<h1>Background Sync Test (<span id="connectionStatus">online/offline<!-- 상태 //--></span>)</h1>
+		<p>(<a href="https://caniuse.com/#feat=background-sync" target="_blank">background sync 브라우저 지원현황</a>)</p>
+		<button id="button_sync">sync test</button>
+		<p>* 서버측 sync test 데이터 받은 후 서버 푸시허용 사용자에 한해 푸시로 이를 알림</p>
+	</article>
+	<article>
+		<h1>Offline Test</h1>
+		<img src="/images/192x192.png">
+	</article>
+	<!-- The actual snackbar -->
+	<!--article>
+		<h1>업데이트 새로고침 유도</h1>
+		<div id="snackbar">A new version of this app is available. Click <a id="reload">here</a> to update.</div>
+	</article-->
+</section>
+
+<!-- JS //-->
+<script src="//code.jquery.com/jquery-1.12.0.min.js"></script>
+<script>
+// push key
+function urlB64ToUint8Array(base64String) {
+	const padding = '='.repeat((4 - base64String.length % 4) % 4);
+	const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+	const rawData = window.atob(base64);
+	const outputArray = new Uint8Array(rawData.length);
+	for(let i=0, max=rawData.length; i<max; ++i) {
+		outputArray[i] = rawData.charCodeAt(i);
+	}
+	return outputArray;
+}
+const vapidPublicKey = "BGbZs00Hf0LWPMNO5Hj2WIFXmUksdGc6uXl0xMaQKCCUl1cSEtbwAPGZhfJRMpN3oZ7Z1o490CQ8gWK8oD1bvtE"; // 서버에서 제공해주는 vapidPublicKey
+const convertedVPkey = urlB64ToUint8Array(vapidPublicKey);
+
+// push 버튼 상태값 변경 
+function setPushButtonState(state) {
+	console.log('[Browser] 푸시 버튼 상태 변경', state);
+	var $button = $("#button_push");
+
+	// toggle
+	switch(state) {
+		case 'subscribe':
+			// 구독취소 버튼 노출
+			$button.attr("data-next-action", "unsubscribe").text("푸시 거부(unsubscribe)");
+			$button.removeAttr("disabled");
+			break;
+		case 'unsubscribe':
+			// 구독신청 버튼 노출 
+			$button.attr("data-next-action", "subscribe").text("푸시 허용(subscribe)");
+			$button.removeAttr("disabled");
+			break;
+		case 'denied':
+			$button.attr({"data-next-action": "", "disabled": true}).text("브라우저 알림이 거부로 설정된 상태(denied)");
+			break;
+		default:
+			$button.attr({"data-next-action": "", "disabled": true}).text("푸시 가능여부 재확인 필요");
+			break;
+	}
+}
+
+// push 허용
+function setPushSubscribe(registration) {
+	if(!registration) {
+		console.error('[Browser] 푸시 허용(registration 값 없음)');
+		return;
+	}
+
+	// 푸시알람을 대행해 주는 웹서버에 푸시를 요청하는 과정
+	// 푸시 알람을 허용할 때마다, subscription 값을 새로 생성한다. (즉, 신규 푸시 키가 생성)
+	registration.pushManager.subscribe({
+		'userVisibleOnly': true, // 기본적으로 푸시가 전송될 때마다 알림을 표시하도록 허용하는 것
+		'applicationServerKey': convertedVPkey // Base64-encoded DOMString or ArrayBuffer
+	})
+	.then(function(subscription) {
+		console.log('[Browser] 푸시 허용 요청(push-subscribe) subscription', subscription);
+		if(!subscription) {
+			setPushButtonState();
+			return;
+		}
+
+		// 서비스워커가 업데이트 되었을 때 해당 값을 보내줘야 한다.
+		$.ajax({
+			method: 'POST',
+			url: '/push-subscribe',
+			//dataType: 'json',
+			data: {
+				//userAgent: window.navigator.userAgent,
+				subscription: JSON.stringify(subscription), // 사용자 토큰값 (디바이스 고유값)
+			}
+		}).done(function(response) {
+			if(response === 'success') {
+				setPushButtonState('subscribe');
+			}
+		}).fail(function(error) {
+			console.log('[Browser] push-subscribe error', error);
+		});
+	})
+	.catch(function(error) {
+		console.log('[Browser] 푸시 허용과정 error', error);
+		setPushButtonState('unsubscribe');
+	});
+}
+
+// push 거부 
+function setPushUnsubscribe(registration) {
+	if(!registration) {
+		console.error('[Browser] 푸시 거부(registration 값 없음)');
+		return;
+	}
+
+	// 구독한 사용자가 구독취소를 할때의 과정
+	registration.pushManager.getSubscription()
+	.then(function(subscription) {
+		console.log('[Browser] 푸시 거부 요청(push-unsubscribe) subscription', subscription);
+		if(!subscription) {
+			setPushButtonState();
+			return;
+		}
+
+		// ajax 서버측 해제요청 전달
+		$.ajax({
+			method: 'POST',
+			url: '/push-unsubscribe',
+			//dataType: 'json',
+			data: {
+				subscription: JSON.stringify(subscription) // 사용자 토큰값 (디바이스 고유값)
+			}
+		}).done(function(response) {
+			if(response === 'success') {
+				setPushButtonState('unsubscribe');
+			}
+		}).fail(function(error) {
+			console.log('[Browser] push-unsubscribe error', error);
+		});
+		
+		// 구독취소
+		return subscription.unsubscribe();
+	})
+	.catch(function(error) {
+		console.log('[Browser] 푸시 거부과정 error', error);
+		setPushButtonState('unsubscribe');
+	});
+}
+
+// 서버측 push 허용/거부 상태확인 
+// 서비스워커를 새로 등록할 때마다 푸시토큰(subscription)이 변경된다. (즉, 서비스워커가 갱신되면 해당브라우저는 새로운 subscription 값을 가진다.)
+// 푸시 전용 서비스 워커(serviceworker-push.js)는 따로 만들어 두는 것이 좋다. 서비스워커가 없데이트 되면, 사용자 푸시키가 새로 발급되기 때문이다!
+function setPushServerCheck(registration, permission) {
+	var permission = permission || Notification.permission;
+
+	if(!registration) {
+		console.error('[Browser] 서버측 푸시 사용자 등록 여부(registration 값 없음)');
+		return;
+	}
+
+	// push (subscription: 토큰, 사용자는 이를 통해 연결)
+	// 현재 브라우저에서 사용자가 이사이트에 대해 구독(푸시허용)을 했는지 안했는지 체크하는 과정
+	registration.pushManager.getSubscription()
+	.then(function(subscription) {
+		console.log('[Browser] 서버측 푸시(알림) 등록확인을 위한 사용자 토큰', subscription);
+		if(!subscription) {
+			setPushButtonState('unsubscribe');
+			return;
+		}
+
+		// 서버측에 해당 값 확인 
+		$.ajax({
+			method: 'GET',
+			url: '/push-check',
+			dataType: 'json',
+			data: {
+				subscription: JSON.stringify(subscription), // 사용자 토큰값 (디바이스 고유값)
+				permission: permission // 사용자 브라우저 알림 허용여부 (default, granted)
+			}
+		}).done(function(response) {
+			console.log('[Browser] push-check response', response);
+			if(typeof response === 'object' && response !== null && response.status === 'success') {
+				// 사용자 브라우저와 서버단 모두 푸시 정보 일치함 
+				setPushButtonState('subscribe');
+			}else {
+				// 기존 정보 제거 
+				subscription.unsubscribe();
+
+				// 서버에 사용자 푸시정보(신청정보)가 없을 경우 
+				if(permission === 'granted') {
+					// 브라우저 알림이 허용이라면 자동 서버측 푸시알림 받기 신청
+					setPushSubscribe(registration);
+				}else {
+					// 서버 푸시 신청 가능 버튼 노출
+					setPushButtonState('unsubscribe');
+				}
+			}
+		}).fail(function(error) {
+			console.log('[Browser] push-check error', error);
+			setPushButtonState();
+		});
+	});
+}
+
+// 브라우저 알림 허용/거부 상태확인 후 서버측 푸시 허용상태확인
+function setNotificationCheck(registration, permission) {
+	var permission = permission || Notification.permission;
+
+	if(!registration) {
+		console.error('[Browser] 브라우저 알림 허용 상태(registration 값 없음)');
+		return;
+	}
+
+	// 사용자 알림허용 여부 
+	// Chrome 은 load 이벤트에서 Notification.requestPermission() 함수를 호출하는 것을 허용하지 않는다. (see issue 274284). ([Violation] Only request notification permission in response to a user gesture.)
+	// https://developer.mozilla.org/ko/docs/WebAPI/Using_Web_Notifications
+	/*Notification.requestPermission()
+	.then(function(permission) {
+		// Notification.permission
+		console.log('[Browser] 브라우저 알림 허용 상태(Notification.permission)', permission);
+		
+		// This allows to use Notification.permission with Chrome/Safari
+		// Chrome 과 Safari 는 permission 속성이 구현되어 있지 않을 수 있다.
+		//if(Notification.permission !== permission) {
+			//Notification.permission = permission;
+		//}
+		switch(permission) {
+			case 'default': // 사용자가 어떠한 권한도 부여하지 않음 (따라서 사용자에게 알림이 오지 않음)
+				break;
+			case 'granted': // 사용자가 의도적으로 어플리케이션으로 부터 알람을 받도록 허가함.
+				setPushServerCheck(registration, permission);
+				break;
+			case 'denied': // 사용자가 의도적으로 어플리케이션으로 부터 알람을 거부함.
+				$('#button_push').text("브라우저 알림 거부한 상태 (denied)");
+				break;
+		}
+	});*/
+
+	// Chrome 32 이전에는 Notification.permission이 지원되지 않았습니다.
+	console.log('[Browser] 브라우저 알림 허용 상태(Notification.permission)', Notification.permission);
+	switch(permission) {
+		case 'default': // 사용자가 어떠한 권한도 부여하지 않음 (따라서 사용자에게 알림이 오지 않음)
+			// 사용자가 브라우저 설정을 초기화하면서 브라우저 알림 허용/거부/기본값 변경되었을 가능성도 있다.
+			Notification.requestPermission()
+			.then(function(permission) {
+				if(permission === 'granted') {
+					// 서버측에도 허용된 사용자로 변경(추가)
+					setPushSubscribe(registration);
+				}else if(permission === 'denied') {
+					// 서버측에도 거부된 사용자로 변경(제거)
+					setPushUnsubscribe(registration);
+				}else {
+					// 재귀호출
+					setNotificationCheck(registration);
+				}
+			});
+			break;
+		case 'granted': // 사용자가 의도적으로 어플리케이션으로 부터 알람을 받도록 허가함.
+			setPushServerCheck(registration, Notification.permission); // 서버측 허용 사용자 등록여부 확인 
+			break;
+		case 'denied': // 사용자가 의도적으로 어플리케이션으로 부터 알람을 거부함.
+			setPushButtonState('denied');
+			break;
+		default:
+			console.error('[Browser] Notification.permission 값 없음', permission);
+			break;
+	}
+}
+</script>
+<script>
+// 모바일 등 환경에서 리소스로드와 서비스워커 등록 후 fetch 가 발생하는 처리가 일어나 버벅거리지 않도록 load 후 서비스워커 작업을 실행하는 것이 좋다.
+// https://developers.google.com/web/fundamentals/primers/service-workers/registration
+window.addEventListener('load', function() {
+	// manifest
+	/*
+	https://www.w3.org/TR/appmanifest/
+	https://developer.mozilla.org/en-US/docs/Web/Manifest
+	https://developer.mozilla.org/ko/docs/Web/Progressive_web_apps/Add_to_home_screen
+	https://developer.mozilla.org/ko/docs/Web/Progressive_web_apps/Installable_PWAs
+
+	-
+	No matching service worker detected. You may need to reload the page, or check that the service worker for the current page also controls the start of the URL from the manifest.
+	에러 발생시
+	manifest.json 파일의 항목 중 "start_url": "/media/" 처럼 경로 마지막에 '/' 을 넣어주거나, service worker 스코프(경로)를 맞춰야 한다.
+	*/
+
+	// service worker
+	// https://gdg-korea-webtech.firebaseapp.com/pwa-roadshow17/
+	// https://developers.google.com/web/fundamentals/codelabs/your-first-pwapp/?hl=ko 
+	if('serviceWorker' in navigator && 'PushManager' in window) {	
+		console.log('[Browser] 서비스워커 작업실행');
+		/*
+		서비스워커 API 설명
+		https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
+
+
+		-
+		서비스워커 라이프 사이클
+		1. 서비스 워커 설치
+			navigator.serviceWorker.register('서비스워커 JS파일')
+			self.addEventListener('install', function(event) { })
+			사용자가 서비스워커를 처음 설치하거나, 기존 서비스워커가 업데이트 되었을 때 실행됩니다.
+			서비스 워커는 설치 후 '활성화(activate)'될 때까지 fetch 및 push와 같은 이벤트를 수신하지 않습니다.
+			리소스 다운로드 및 캐시에 실패하면 설치되지 않습니다. (파일이 하나라도 실패하면 전체 캐시 단계가 실패)
+		2. 서비스 워커 설치에 따른 활성화 (캐시관리 가능) - 정상적으로 설치(install) 되지 않으면 활성화되지 않는다.
+			self.addEventListener('activate', function(event) { })
+			activate 콜백에서 발생하는 한 가지 공통 작업은 캐시 관리입니다. 
+			activate 콜백 단계에서 캐시 관리를 하는 이유는 설치 단계에서 이전 캐시들을 다 제거하면 
+			현재 페이지를 제어하는 이전 서비스 워커가 해당 페이지에 필요한 캐시 파일을 제공하지 못하게 되기 때문입니다. (즉, 기존페이지가 활성화 되어있을 경우, 해당 페이지에서 사용중인 캐시가 있을 수 있기 때문)
+		3. 리소스 요청에 대한 캐시데이터 확인 및 반환 - 현재 서비스워커가 설치된 페이지의 모든 request를 관리합니다.
+			self.addEventListener('fetch', function(event) { })
+
+
+		-
+		기본 스코프
+		서비스워커 등록파일(설치파일) 경로 기준, 서비스워커 하위경로 파일들은 서비스워커의 fetch 를 모두 거친다. (서비스워커 파일 경로의 중요성!)
+		또는 fetch 스코프 지정이 가능하다. (register 두번째 파라미터 옵션값 지정 가능)
+		> 옵션으로 스코프 지정: navigator.serviceWorker.register('/test/serviceworker.js', {scope: '/test/'})
+		> 서비스워커 파일 위치가 기본 스코프로 지정: navigator.serviceWorker.register('/test/serviceworker.js')
+
+
+		-
+		여러 서비스워커 파일이 등록될 경우 (스코프가 동일한 것은 마지막 최종 한개만 정상 설치됨)
+		navigator.serviceWorker.register('/test1/serviceworker1.js') // test1 스코프
+		navigator.serviceWorker.register('/test2/serviceworker1.js') // test2 스코프
+		navigator.serviceWorker.register('/test1/serviceworker2.js') // 이미 test1 스코프에 워커 파일 존재, 기존 test1은 삭제되고 마지막 test1 스코프 설치됨
+
+
+		-
+		서비스워커 업데이트가 발생하는 경우
+		> navigator.serviceWorker.register() 신규 호출
+		> 브라우저에 의한 자동 Update - 기존 등록된 서비스워커와 다른 파일내부 변경이력, HTTP Header Cache-Control max-age(최대24시간), 개발자도구 Service Workers 탭의 'Update on Reload' 페이지 새로고침시 업데이트 체크 등
+		> client request 처리시 - fetch
+		> 24시간내(Cache-Control max-age) 업데이트 확인이 없는 상태에서 push 및 sync 이벤트 발생시
+		> registration.update(), registration.unregister() 명시적 호출시
+
+		https://developers.google.com/web/fundamentals/primers/service-workers/lifecycle
+		https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.9
+		https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching
+
+
+		-
+		서비스워커가 업데이트될 경우, 기본적으로 아래와 같은 단계로 진행
+		1. 서비스워커 자바스크립트 파일을 업데이트합니다. (크롬 개발자도구를 통한 수동 업데이트 가능: Application탭 -> Service Workers -> 해당 서비스워커 파일 'Update' 클릭)
+			서비스워커 파일에 수정이력이 없다면, update 버튼을 클릭 및 페이지 새로고침을 해도 설치(install)는 실행되지 않는다.
+		2. 새 서비스 워커가 시작되고 install 이벤트가 생성됩니다.
+		3. 이때 이전 서비스 워커가 아직 현재 페이지를 제어하고 있기 때문에 새 서비스 워커는 waiting 상태가 됩니다. (설치단계에서 self.skipWaiting() 가 실행될 경우는 제외)
+		4. 현재 열려 있는 사이트 페이지가 닫히면 이전 서비스 워커가 종료되고 새 서비스 워커가 제어권을 갖게 됩니다. (페이지 새로고침이 아닌, 탭을 닫고 다시열어 접속시, 대기상태에서 활성화상태로 변경된다.)
+		5. 새 서비스 워커가 제어권을 가지면 activate 이벤트가 발생합니다.
+
+
+		-
+		개발자 도구 -> Application 패널 -> Service Workers 탭 -> 'Update on Reload' 체크시 동작 (기본값으로 체크가 되어 있음, 페이지를 새로 고칠 때마다 서비스 워커가 강제로 업데이트됨)
+		1. 서비스 워커를 다시 가져옵니다.
+		2. 서비스워커 파일의 크기(바이트)가 동일한 경우에도 새 버전으로 설치합니다. 즉, install 이벤트가 실행되고 캐시가 업데이트됩니다.
+		3. 새로운 서비스 워커가 활성화되도록 대기 단계를 건너뜁니다. - self.skipWaiting()
+		4. 페이지를 탐색합니다. - activate, fetch
+
+		기본적으로 브라우저에 열려 있는 페이지(해당 서비스워커가 등록된 페이지) 탭이 존재하는 한, 해당 페이지의 서비스워커를 업데이트 하려고해도, 기존 서비스 워커가 계속해서 해당 페이지를 제어합니다. (즉, 서비스워커 업데이트 발생하지 않음)
+		따라서 서비스워커 업데이트가 필요한 페이지는, 브라우저의 해당 페이지 탭(또는 브라우저)을 모두 닫았다가 다시 열거나, 개발자 도구의 skipWaiting 버튼을 누를 수도 있겠지만, 
+		보다 장기적 해결책은 Service Worker 탭에서 'Update on Reload' 를 체크하는 방법입니다. (기본설정은 체크가 되어있는 상태)
+		이 체크박스를 선택하면 페이지를 새로 고칠 때마다 서비스 워커가 강제로 업데이트됩니다. 
+
+
+		-
+		서비스워커 파일 업데이트 및 재등록 문제가 발생하는 경우
+		1. Cache-Control: max-age=0 HTTP header 를 변경
+		2. 푸시를 통해 신규 서비스워커 파일 등록 (푸시로 신규 서비스워커 파일명 전송) - 푸시를 통하는 이유는 서비스워커 등록 코드가 있는 html 파일도 서비스워커 캐시되어 있을 수 있기때문
+		3. 개발자 도구 -> Application 패널 -> Service Workers 탭 -> 'Update on Reload' 체크 (페이지를 새로 고칠 때마다 서비스 워커가 강제로 업데이트)
+		4. 서비스워커 파일명 변경을 통한 업데이트는 추천하지 않는다. (서비스워커를 등록하는 코드가 있는 페이지가 이미 캐싱되어 새로운 워커를 다운받지 못할 수 있다. 서비스워커 업데이트를 추천)
+		[참고] 개발자 도구의 Application 통해 기존 서비스워커 삭제를 클릭해도 바로 삭제되지 않고 남아 있다면, 브라우저 다른 탭이나 현재 페이지에서 삭제를 클릭한 서비스워커 파일이 사용 중일 수 있기 때문 (삭제를 실행한 해당 서비스워커가 브라우저 어디에서도 사용되지 않을 때 브라우저가 최종 삭제를 한다)
+		*/
+
+
+		// 서비스워커 등록 값 반환
+		/*navigator.serviceWorker.getRegistration('/test/')
+		.then(function(registration) {
+			console.log("[Browser] getRegistration (지정)", registration);
+		});
+		navigator.serviceWorker.getRegistrations()
+		.then(function(registrations) {
+			console.log("[Browser] getRegistrations (리스트)", registrations);
+		});*/
+
+
+		// 서비스워커 등록 - 여러번 호출해도 브라우저가 중복 등록 여부를 확인하고 그에 따라 처리
+		// [중요!] 서비스워커를 새로 등록할 때마다 푸시토큰(subscription)이 변경된다. (서비스워커가 새로 등록될 경우 푸시 토큰도 새로 발행되기 때문)
+		// [중요!] 푸시 전용 서비스 워커(serviceworker-push.js)는 따로 만들어 두는 것이 좋다. 서비스워커가 없데이트 되면, 사용자 푸시키가 새로 발급되기 때문이다!
+		/*navigator.serviceWorker
+		.register('./service-worker.js')
+		.then(registration => navigator.serviceWorker.ready)
+		.then(registration => { // register sync
+			registration.sync.register('image-fetch').then(() => {
+				console.log('Sync registered');
+			});
+		});*/
+
+
+		// 하나의 스코프에는 하나의 서비스워커 파일만 최종적 등록 (중복될 경우 마지막에 등록한 파일로 등록됨, 스코프가 다른 것은 여러개 등록가능) 
+		// [중요!] 옵션으로 스코프를 지정하지 않았을 경우, 서비스워커 파일 경로가 서비스워커가 적용되는 root 경로로 자동 설정된다!
+		// 서비스워커 스코프 등이 맞지 않을 경우 'no matching service worker detected. ...' 크롬 개발자 오류가 출력
+		//navigator.serviceWorker.register('/test/serviceworker.js', { scope: '/test/' }) // scope 지정
+		navigator.serviceWorker.register('/serviceworker.js') // 서비스워커 파일 경로을 통한 기본 스코프 등록
+		.then(function(registration) {
+			// Registration was successful
+			console.log('[Browser] 서비스워커 등록(registration) 되었음', registration);
+			console.log('[Browser] 서비스워커 scope (서비스워커 fetch가 실행되는 root 경로): ', registration.scope);
+
+			// 업데이트 처리 진행상태 
+			registration.installing; // the installing worker, or undefined
+			registration.waiting; // the waiting worker, or undefined
+			registration.active; // the active worker, or undefined
+			registration.addEventListener('updatefound', () => {
+				// A wild service worker has appeared in registration.installing!
+				// https://w3c.github.io/ServiceWorker/#service-worker-registration-updatefound-event
+				// https://developers.google.com/web/fundamentals/primers/service-workers/lifecycle?hl=ko
+				const installingWorker = registration.installing;
+				console.log('[Browser] registration.installing.scriptURL', installingWorker.scriptURL);
+
+				// installingWorker.state; 값 변화
+				// "installing" - the install event has fired, but not yet complete
+				// "installed"  - install complete
+				// "activating" - the activate event has fired, but not yet complete
+				// "activated"  - fully active
+				// "redundant"  - discarded. Either failed install, or it's been
+				//                replaced by a newer version
+				installingWorker.addEventListener('statechange', () => { // 상태변경 이벤트 (상태변경시마다 콜백실행)
+					// installingWorker.state has changed
+					// https://github.com/GoogleChromeLabs/sw-precache/blob/master/demo/app/js/service-worker-registration.js#L20
+					console.log('[Browser] registration.installing.state (설치상태)', installingWorker.state);
+					switch(installingWorker.state) {
+						case 'installed':
+							if(navigator.serviceWorker.controller) {
+								// 신규 서비스워커 설치 되었음 (사용자에게 새로고침 안내 배너 표시 권장!)
+								// 새로운 서비스워커가 설치(업데이트)되었다고, 사용자가 현재 보고있는 페이지에 바로 적용되는 것은 아님. 새로고침(새로접속)을 통해 업데이트된 서비스워커가 페이지에 적용됨.
+								// 업데이트된 서비스워커가 접속한 현재 페이지에 바로 적용되지 않는 것은, 현재 페이지에 과거 서비스워커 적용 프로세스에 따라 로드(페이지실행)되었을 가능성이 있기 때문 (즉, 현재 페이지에 업데이트 되기 전 서비스워커 기능이 필요할 수 있기때문)
+								// 브라우저 다른 탭에서 동일 페이지에 접속하고 있다면, 바로 업데이트 되지 않는다. (모든 탭을 종료하고 새로 접속해야함. 브라우저 내부에 서비스워커가 저장되기 때문)
+								console.log('[Browser] 서비스워커 installed');
+
+							}else {
+								
+							}
+							break;
+						case 'redundant':
+							console.error('[Browser] 서비스워커 중복 설치');
+							break;
+					}
+				});
+			});
+
+			// 알림 확인 
+			setNotificationCheck(registration);
+
+			// 현재 서비스워커 제거 
+			$('#button_delete').off('click').on('click', function() {
+				console.log('[Browser] 서비스워커 제거 실행');
+				if(!registration) {
+					return;
+				}
+				registration.unregister()
+				.then(function(is) {
+					console.log('[Browser] unregister', is);
+				})
+				.catch(function(e) {
+					console.log('[Browser] unregister catch', e);
+				});
+			});
+
+			// 서비스워커 수동 업데이트 
+			$('#button_update').off('click').on('click', function() {
+				console.log('[Browser] 서비스워커 수동 업데이트 실행');
+				if(!registration) {
+					return;
+				}
+				// 서비스워커 업데이트 (서비스워커 파일이 이전 버전과 같거나 변경이 없으면 controllerchange 콜백 실행되지 않음)
+				registration.update();
+			});
+
+			// 푸시 상태 버튼 
+			$("#button_push").off('click').on('click', function(e) {
+				var action = $(this).attr("data-next-action");
+
+				if(!registration) {
+					return;
+				}
+				
+				//Disabled Button until user response..
+				$(this).attr("disabled", true);
+				
+				switch(action) {
+					case 'subscribe':
+						// 푸시허용으로 변경
+						// Subscribing
+						console.log('[Browser] 푸시 허용 작업(Subscribing)');
+						setPushSubscribe(registration);
+						break;
+					case 'unsubscribe':
+						// 푸시거부로 변경
+						// Unsubscribing
+						console.log('[Browser] 푸시 거부 작업(Unsubscribing)');
+						setPushUnsubscribe(registration)
+						break;
+					default:
+
+						break;
+				}
+			});
+		})
+		.catch(function(error) {
+			console.log('[Browser] ServiceWorker registration failed', error);
+		});	
+
+		/*navigator.serviceWorker.register('/test/serviceworker-push.js') 
+		.then(function(registration) {
+			// Registration was successful
+			console.log('[Browser-push] 서비스워커 등록(registration) 되었음', registration);
+			console.log('[Browser-push] 서비스워커 scope (서비스워커 fetch가 실행되는 root 경로): ', registration.scope);
+
+			// 알림 확인 
+			setNotificationCheck(registration);
+
+			// Add Button Listener
+			$("#button_push").off('click').on('click', function(e) {
+				//Disabled Button until user response..
+				$(this).attr("disabled", true);
+				
+				if($(this).attr("data-next-action") == "subscribe") { 
+					// 푸시허용으로 변경
+					// Subscribing
+					console.log('[Browser] 푸시 허용 작업(Subscribing)');
+					setPushSubscribe(registration);
+				}else { 
+					// 푸시거부로 변경
+					// Unsubscribing
+					console.log('[Browser] 푸시 거부 작업(Unsubscribing)');
+					setPushUnsubscribe(registration)
+				}
+			});
+		})
+		.catch(function(error) {
+			console.log('[Browser-push] ServiceWorker registration failed', error);
+		});*/
+
+
+		// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- 
+
+
+		// 서비스워커 활성화 - 서비스워커 파일 등록 후 다시 재접속했을 때 활성화 
+		navigator.serviceWorker.ready
+		.then(function(registration) {
+			console.log('[Browser] 서비스워커 활성화(active) 되었음', registration.active);
+
+			// sync (백그라운드 동기화)
+			// 네트워크가 연결되어 있다면 바로 fetch 를 실행하고, 네트워크가 연결되어있지 않다면 기다렸다가 연결되었을 때 fetch를 실행한다.
+			if(registration.sync) {
+				// 백그라운드 동기화 등록 
+				$('#button_sync').off('click').on('click', function() {
+					registration.sync.register('background-sync')
+					.then(function() {
+						console.log('[Browser] Sync "background-sync" registered');
+					})
+					.catch(function(e) {
+						console.log('[Browser] Sync "background-sync" error', e);
+					});
+				});
+				registration.sync.register('test1')
+				.then(function() {
+					console.log('[Browser] Sync "test1" registered');
+				})
+				.catch(function(e) {
+					console.log('[Browser] Sync "test1" error', e);
+				});
+				registration.sync.register('test2')
+				.then(function() {
+					console.log('[Browser] Sync "test2" registered');
+				})
+				.catch(function(e) {
+					console.log('[Browser] Sync "test2" error', e);
+				});
+				/*document.getElementById('button_sync').addEventListener('click', () => {
+					registration.sync.register('image-fetch').then(() => {
+						console.log('Sync "image-fetch" registered');
+					});
+				});*/
+			}else {
+				$('#button_sync').attr("disabled", true).text('브라우저 미지원!');
+			}
+
+
+			// 1.
+			function setSendMessageServiceworker(message) {
+				return new Promise(function(resolve, reject) {
+					// Create a Message Channel
+					var channel = new MessageChannel();
+
+					// Handler for recieving message reply from service worker
+					channel.port1.onmessage = function(event) {
+						if(event.data.error) {
+							reject(event.data.error);
+						}else {
+							resolve(event.data);
+						}
+					};
+
+					// Send message to service worker along with port for reply
+					//navigator.serviceWorker.controller.postMessage("Client 1 says '" + message + "'", [channel.port2]); // 등록(register) 이벤트가 발생했을 때, controller 값이 없을 수 있다.
+					registration.active.postMessage("Client 1 says '" + message + "'", [channel.port2]);
+				});
+			}
+			//setSendMessageServiceworker('YSM');
+			setSendMessageServiceworker("Hello")
+			.then(function(message) {
+				console.log('[Browser] message', message);
+			});
+
+			
+			// 2.
+			function setSendMessageClient(client, message) {
+				return new Promise(function(resolve, reject) {
+					var channel = new MessageChannel();
+
+					channel.port1.onmessage = function(event) {
+						if(event.data.error) {
+							reject(event.data.error);
+						}else {
+							resolve(event.data);
+						}
+					};
+
+					client.postMessage("SW Says: '" + message + "'", [channel.port2]);
+				});
+			}
+			function setSendMessageAllClients(message) {
+				clients.matchAll()
+				.then(clients => {
+					clients.forEach(client => {
+						setSendMessageClient(client, message)
+						.then(message => console.log("SW Received Message: " + message));
+					})
+				});
+			}
+			//setSendMessageAllClients('Hello');
+		})
+		.catch(function() {
+			console.log('[Browser] navigator.serviceWorker.ready error');
+		});
+
+
+		// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- 
+
+
+		// 서비스워커 update 콜백 
+		navigator.serviceWorker.addEventListener('controllerchange', function(event) {
+			console.log("[Browser] 서비스워커 controllerchange", event);
+			//window.location.reload();
+
+			// 푸시 재등록 실행!
+			navigator.serviceWorker.getRegistrations()
+			.then(function(registrations) {
+				console.log("[Browser] 푸시 재등록 (registrations 리스트)", registrations);
+				registrations.forEach(function(registration) {
+					setNotificationCheck(registration);
+				});
+			});
+			navigator.serviceWorker.getRegistration('/test/')
+			.then(function(registration) {
+				console.log("[Browser] 푸시 재등록 (registration)", registration);
+				//setNotificationCheck(registration);
+			});
+		});
+
+		// 서비스워커 메시지(데이터) 교환 
+		// 메시지는 서비스워커가 등록(register), 설치(install), 활성화(activate) 된 후 메시지 교환이 가능하다.
+		navigator.serviceWorker.addEventListener('message', function(event) {
+			console.log("[Browser] 서비스워커가 클라이언트에 보낸 메시지", event.data);
+
+			// 특정 서비스워커에 메시지 전달 
+			if(event.ports.length) {
+				event.ports[0].postMessage("클라이언트가 서비스워커에 보내는 메시지 입니다.");
+			}
+		});
+
+		// 서비스워커 에러 
+		navigator.serviceWorker.addEventListener('error', function(event) {
+			console.log("[Browser] 서비스워커 error", event);
+		});
+	}else {
+		// 서비스워커 미지원 
+		$("#button_push").attr("disabled", true).text('브라우저 미지원!');
+		$('#button_delete').attr("disabled", true).text('브라우저 미지원!');
+		$('#button_update').attr("disabled", true).text('브라우저 미지원!');
+		$('#button_sync').attr("disabled", true).text('브라우저 미지원!');
+	}
+}); 
+</script>
+<script>
+// Connection Status
+function isOnline () {
+	var connectionStatus = document.getElementById('connectionStatus');
+	if(navigator.onLine){
+		connectionStatus.innerHTML = 'online!';
+	}else {
+		connectionStatus.innerHTML = 'offline!';
+	}
+}
+window.addEventListener('online', isOnline);
+window.addEventListener('offline', isOnline);
+isOnline();
+
+
+
+// 글로벌 변수 caches: {} - __proto__ 체이닝 형태 add, metch 등 함수를 가지고 있음
+// https://developer.mozilla.org/en-US/docs/Web/API/Cache
+console.log('window.caches', window.caches);
+// 캐시 용량 확인 
+if('storageQuota' in navigator && navigator.storageQuota.queryInfo) {
+	navigator.storageQuota.queryInfo("temporary")
+	.then(function(storageInfo) {
+		console.log(storageInfo.quota);
+		// Result: <quota in bytes>
+		console.log(storageInfo.usage);
+		// Result: <used data in bytes>
+
+		// Continue to initialize local cache using the obtained
+		// usage and remaining space (quota - usage) information.
+		//initializeCache(storageInfo.usage, storageInfo.quota - storageInfo.usage);
+	});
+}
+if('storage' in navigator && 'estimate' in navigator.storage) {
+	navigator.storage.estimate()
+	.then(function(estimate) {
+		console.log(`Using ${estimate.usage} out of ${estimate.quota} bytes.`);
+	});
+}
+// 동적 캐시 작업 테스트
+document.querySelector('#button_cache').addEventListener('click', function(event) { 
+	event.preventDefault();
+	var id = this.dataset.articleId; 
+	
+	console.log('id', id);
+
+	caches
+	.open('mysite-article-' + id)
+	.then(function(cache) {
+		fetch('/get-article-urls?id=' + id)
+		.then(function(response) { // /get-article-urls returns a JSON-encoded array of
+			// resource URLs that a given article depends on
+			//return response.json();
+		})
+		.then(function(urls) { 
+			//cache.addAll(urls);
+		}); 
+	});
+});
+
+
+
+// 설치(홈스크린) 배너 이벤트 
+/*
+https://developers.google.com/web/updates/2018/06/a2hs-updates
+
+-
+배너 표시 기준
+5분 간격 2번 이상 방문시 표시
+사용자가 취소할 경우 약 3개월정도 재노출 안함
+이 기준은 서비스 워커가 필요하다는 점을 제외하고는 웹 앱 설치 배너와 유사합니다. 사이트는 다음을 충족해야 합니다.
+
+> 웹 앱 매니페스트 파일에 다음이 포함되어야 합니다.
+> short_name
+> name(배너 프롬프트에 사용)
+> 192x192 png 아이콘. 아이콘 선언에 MIME 유형의 image/png가 포함되어야 합니다.
+> 앱 정보가 포함된 related_applications 객체
+> HTTPS를 통해 서비스되어야 합니다.
+> 2주 간의 사용자가 각각 다른 날짜에 두 번 방문해야 합니다.
+*/
+window.addEventListener('beforeinstallprompt', function(event) {
+	// Prevent Chrome <= 67 from automatically showing the prompt
+	console.log('platforms', event.platforms); // "web", "android", "windows"
+	event.preventDefault();
+
+	// https://web.dev/customize-install/
+	var displayMode = 'browser tab';
+	if(navigator.standalone) {
+		displayMode = 'standalone-ios';
+	}
+	if(typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches) {
+		displayMode = 'standalone';
+	}
+	console.log('display mode', displayMode);
+
+	/*
+	// The user has had a postive interaction with our app and Chrome
+	// has tried to prompt previously, so let's show the prompt.
+	event.prompt();
+
+	// event.userChoice will return a Promise. 
+	// https://developers.google.com/web/fundamentals/getting-started/primers/promises
+	event.userChoice.then(function(choiceResult) {
+		console.log('choiceResult.outcome', choiceResult.outcome);
+
+		// dismissed: 설치 안되어 있음, accepted: 홈스크린에 이미 설치됨 
+		if(choiceResult.outcome == 'dismissed') {
+			console.log('User cancelled home screen install');
+		}else {
+			console.log('User added to home screen');
+		}
+	});
+	*/
+
+	// 설치 버튼에 따른 동작 
+	var button_manifest_install = $('#button_manifest_install');
+	button_manifest_install.removeAttr("disabled");
+	button_manifest_install.on('click', function() {
+		console.log('Show the modal add to home screen dialog');
+		
+		// 설치 버튼 비활성 (또는 숨기기)
+		button_manifest_install.attr("disabled", true);
+
+		// 설치 팝업 띄우기 실행
+		// Show the modal add to home screen dialog
+		//const { userChoice } = await event.prompt();
+		//console.info(`user choice was: ${userChoice}`);
+		event.prompt();
+
+		// 사용자가 설치 허용/거절 선택 후 실행
+		// event.userChoice will return a Promise. 
+		// https://developers.google.com/web/fundamentals/getting-started/primers/promises
+		event.userChoice.then(function(choiceResult) {
+			console.log('choiceResult', choiceResult);
+
+			// dismissed: 설치 안되어 있음, accepted: 홈스크린에 이미 설치됨 
+			if(choiceResult.outcome == 'dismissed') {
+				console.log('User cancelled home screen install');
+			}else {
+				console.log('User added to home screen');
+			}
+		});
+	});
+});
+// 설치 성공 결과 
+window.addEventListener('appinstalled', function(event) {
+	const date = new Date(event.timeStamp / 1000);
+	console.log(`Yay! Our app got installed at ${date.toTimeString()}.`);
+});
+
+
+
+// 업데이트 새로고침 유도 
+/*let newWorker;
+function showUpdateBar() {
+	let snackbar = document.getElementById('snackbar');
+	snackbar.className = 'show';
+}
+// The click event on the pop up notification
+document.getElementById('reload').addEventListener('click', function(){
+	newWorker.postMessage({ action: 'skipWaiting' });
+});
+if('serviceWorker' in navigator) {
+	navigator.serviceWorker.register('/service-worker.js').then(reg => {
+		reg.addEventListener('updatefound', () => {
+			// A wild service worker has appeared in reg.installing!
+			newWorker = reg.installing;
+			newWorker.addEventListener('statechange', () => {
+				// Has network.state changed?
+				switch (newWorker.state) {
+					case 'installed':
+						if (navigator.serviceWorker.controller) {
+							// new update available
+							showUpdateBar();
+						}
+						// No update available
+						break;
+				}
+			});
+		});
+	});
+	let refreshing;
+	navigator.serviceWorker.addEventListener('controllerchange', function () {
+		if (refreshing) return;
+		window.location.reload();
+		refreshing = true;
+	});
+}*/
+</script>
+</body>
+</html>

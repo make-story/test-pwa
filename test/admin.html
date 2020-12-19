@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, width=device-width, minimal-ui" />
+<title>Push Admin</title>
+<!-- CSS //-->
+<link rel="stylesheet" type="text/css" href="/css/api.min.css">
+<link rel="stylesheet" type="text/css" href="/css/media.min.css">
+<style>
+#js_table {
+	margin: 20px 0;
+	max-width: 100%;
+	min-width: 100%;
+}
+#js_table tbody tr:hover {
+	background-color: rgba(0, 0, 0, .03);
+}
+#js_table th, #js_table td {
+	padding: 10px;
+}
+#js_table td {
+	text-align: center;
+
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	word-wrap: normal;
+	max-width: 100px;
+	overflow: hidden;
+}
+.wrap-input, .wrap-button {
+	margin: 10px 5px;
+}
+</style>
+</head>
+<body class="header-none media">
+<div id="wrap" class="">
+	<!-- header //-->
+	<!-- header id="header" class="">
+		<div class="box clear-after">
+			<div class="logo left">
+				<a href="/kit"><svg class="symbol" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="24px" height="24px" viewBox="0 0 24 24" enable-background="new 0 0 24 24" xml:space="preserve"><path fill="#E7444E" d="M24,23c0,0.553-0.447,1-1,1H1c-0.552,0-1-0.447-1-1V1c0-0.552,0.448-1,1-1h22c0.553,0,1,0.448,1,1V23z"/><rect x="4" y="4" fill="#FFFFFF" width="6" height="2"/><rect x="10" y="12" fill="#FFFFFF" width="2" height="8"/><rect x="12" y="14" fill="#FFFFFF" width="2" height="2"/><rect x="16" y="14" fill="#FFFFFF" width="2" height="2"/><rect x="14" y="16" fill="#FFFFFF" width="2" height="2"/><rect x="18" y="12" fill="#FFFFFF" width="2" height="8"/></svg></a><a href="/kit/#/" class="title">makeapi</a>
+			</div>
+		</div>
+	</header -->
+
+	<section class="paper">
+		<div class="domain-top-left"><!-- 상단좌축 //--></div>
+		<div class="domain-top-right"><!-- 상단우측 //--></div>
+		<div class="domain-bottom-left"><!-- 하단좌측 //--></div>
+		<div class="domain-bottom-right"><!-- 하단우측 //--></div>
+
+		<!-- 컨텐츠 //-->
+		<div class="area-padding">
+			<header class="header style1">
+				<div class="subject clause-common">
+					<div class="bar"><!-- bar //--></div>
+					<h2 class="headline">Push Admin</h2>
+					<h3 class="subtitle">Web Push Notifications</h3>
+				</div>
+			</header>
+			<article class="article clause-common">
+				<div>
+					<p class="wrap-input">
+						<input type="text" name="title" value="" placeholder="title" class="input-text" />
+						<input type="text" name="body" value="" placeholder="body" class="input-text" />
+					</p>
+					<p class="wrap-input">
+						<input type="text" name="icon" value="" placeholder="icon" class="input-text" />
+						<input type="text" name="badge" value="" placeholder="badge" class="input-text" />
+					</p>
+					<p class="wrap-input">
+						<input type="text" name="image" value="" placeholder="image" class="input-text" />
+						<input type="text" name="url" value="" placeholder="url" class="input-text" />
+					</p>
+				</div>
+					
+				<div class="clear-after">
+					<div class="left wrap-button">
+						<button class="button-normal" id="js_button_send_check">선택발송</button>
+						<button class="button-normal" id="js_button_send_all">전체발송</button>
+					</div>
+					<div class="right wrap-button">
+						<button class="button-normal" id="js_button_delete_check">선택삭제</button>
+						<button class="button-normal" id="js_button_delete_all">전체삭제</button>
+					</div>
+					<div class="right wrap-button">
+						<button class="button-normal" id="js_button_true">푸시허용(true)</button>
+						<button class="button-normal" id="js_button_false">푸시정지(false)</button>
+					</div>
+				</div>
+					
+				<div>
+					<table id="js_table">
+						<thead>
+							<tr>
+								<th><input type="checkbox" name="checkall" value="" class="" /></th>
+								<th>endpoint</th>
+								<th>true/false</th>
+								<th>count</th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</article>
+		</div>
+	</section>
+
+	<footer id="footer" class="clear">
+		<p class="copyright">Copyright (c). by Sung-min Yu.</tr>
+	</footer>
+</div>
+
+<!-- template //-->
+<template id="js_template_list">
+	<tr id="">
+		<td class="js_checkbox"><input type="checkbox" name="endpoint" value="" id="" class="" /></td>
+		<td class="js_code"></td>
+		<td class="js_use"></td>
+		<td class="js_send"></td>
+	</tr>
+</template>
+
+<!-- JS //-->
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.12.0.min.js"></script>
+<script type="text/javascript" src="/js/api.socket.min.js"></script>
+<script type="text/javascript">
+var $js_table = $('#js_table');
+
+// render
+var setList = function(data) {
+	var $js_template_list = $('#js_template_list');
+	var content = $js_template_list.get(0).content;
+	var clone;
+	var $label;
+	var fragment = document.createDocumentFragment();
+	var i, max;
+	var key = '';
+
+	for(i=0,max=data.length; i<max; i++) {
+		if(!data[i].endpoint) {
+			continue;
+		}
+		key = data[i].endpoint.split('/').pop();
+		if(!key) {
+			continue;
+		}
+		clone = document.importNode(content, true);
+		$label = $('<label />').attr('for', 'check_' + key);
+		$(clone).find('tr').attr('data-endpoint', data[i].endpoint);
+		$(clone).find('.js_checkbox').find('input').attr('id', 'check_' + key).val(data[i].endpoint);
+		$(clone).find('.js_code').append($label.clone().text(key));
+		$(clone).find('.js_use').append($label.clone().text(data[i].use));
+		$(clone).find('.js_send').append($label.clone().text(data[i].send || 0));
+		fragment.appendChild(clone);
+	}
+
+	$js_table.find('tbody').append(fragment);
+};
+$.ajax({
+	'url': '//makeapi.net/push-send',
+	'method': 'GET',
+	'dataType': 'json',
+	'success': function(data) {
+		if(typeof data !== 'object') {
+			return;
+		}
+		setList(data);
+	}
+});
+
+// event
+var setSubmit = function(type, options) {
+	var list = [];
+	var data = {};
+	var method = 'POST';
+
+	// endpoint (checkbox)
+	$js_table.find('input[name="endpoint"]:checked').each(function() {
+		list.push($(this).val());
+	});
+	data.endpoint = list.join(',');
+
+	// title, body, method
+	switch(type) {
+		case 'send_check':
+		case 'send_all':
+			data.title = $('input[name="title"]').val();
+			data.body = $('input[name="body"]').val();
+			data.icon = $('input[name="icon"]').val();
+			data.badge = $('input[name="badge"]').val();
+			data.image = $('input[name="image"]').val();
+			data.url = $('input[name="url"]').val();
+			if(type === 'send_all') {
+				data.endpoint = '';
+			}
+			method = 'POST';
+			break;
+		case 'false':
+		case 'true':
+			data.use = type;
+			method = 'PUT';
+			break;
+		case 'delete_check':
+		case 'delete_all':
+			if(type === 'delete_all') {
+				data.endpoint = '';
+			}
+			method = 'DELETE';
+			break;
+	}
+
+	// ajax
+	$.ajax({
+		'url': '//makeapi.net/push-send',
+		'method': method,
+		'dataType': 'json',
+		'data': data,
+		'success': function(data) {
+			var i, max;
+
+			console.log(data);
+			if(!data || typeof data !== 'object') {
+				return;
+			}else if(data.status === 'permission') {
+				alert('권한없음');
+				return;
+			}
+			
+			switch(type) {
+				case 'false':
+				case 'true':
+					for(i=0, max=list.length; i<max; i++) {
+						$('tr[data-endpoint="' + list[i] + '"]').find('.js_use').text(data.use);
+					}
+					break;
+				case 'delete':
+					for(i=0, max=list.length; i<max; i++) {
+						$js_table.find('tr[data-endpoint="' + list[i] + '"]').remove();
+					}
+					break;
+			}
+		}
+	})
+};
+$js_table.find('input[name="checkall"]').click(function() {
+	var is = $(this).prop('checked');
+	// 체크박스 상태에 따라 선택/해제
+	$js_table.find('input[name="endpoint"]').each(function() {
+		$(this).prop("checked", is); // toggle
+	});
+});
+$('#js_button_send_check').click(function(event) {
+	setSubmit('send_check');
+});
+$('#js_button_send_all').click(function(event) {
+	setSubmit('send_all');
+});
+$('#js_button_false').click(function(event) {
+	setSubmit('false');
+});
+$('#js_button_true').click(function(event) {
+	setSubmit('true');
+});
+$('#js_button_delete_check').click(function(event) {
+	setSubmit('delete_check');
+});
+$('#js_button_delete_all').click(function(event) {
+	setSubmit('delete_all');
+});
+
+// socket
+var socket = api.socket({
+	'url': 'ws://www.makeapi.net?pathname=' + window.location.pathname + '&page=' + window.location.pathname.split('/').pop(),
+	'listeners': {
+		'open': function(event) {
+			console.log('open', event);
+		},
+		'message': function(result) {
+			console.log(result);
+			if(typeof result === 'string') {
+				result = JSON.parse(result);
+			}
+			if(!result || typeof result !== 'object') {
+				return;
+			}
+			if(result.data && typeof result.data === 'object') {
+				switch(result.data.type) {
+					case 'subscribe':
+						setList([{'endpoint': result.data.endpoint, 'use': result.data.use}]);
+						break;
+					case 'unsubscribe':
+					case 'delete':
+						$js_table.find('tr[data-endpoint="' + result.data.endpoint + '"]').remove();
+						break;
+					case 'send':
+						$js_table.find('tr[data-endpoint="' + result.data.endpoint + '"]').find('.js_send').text(result.data.send || 0);
+						break;
+				}
+			}
+		},
+		'close': function(event) {
+			console.log('close', event);
+		},
+		'error': function(event) {
+			console.log('error', event);
+		}
+	}
+});
+//socket.send('신규 접속: ' + getDate());
+</script>
+</body>
+</html>

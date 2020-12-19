@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<!--
+https://developer.mozilla.org/ko/docs/Web/HTML/Using_the_application_cache
+
+오프라인에서도 실행되도록 해주는 애플리케이션 캐시 메카니즘을 제공
+캐시 매니페스트 파일은 세 부분: CACHE, NETWORK, FALLBACK
+
+manifest="" 속성을 사용한 파일(.html) 수정이 되거나, 
+manifest 파일내부 캐시 리스트 중 해당 리소스의 변경이 있으면, 
+manifest.appcache 내부의 버전정보(브라우저가 캐시를 업데이트 할 수 있도록)를 수정!
+
+CACHE:
+이것은 캐시 매니페스트 파일의 항목에 대한 기본 섹션입니다. 
+CACHE:섹션 헤더 아래에 나열된 파일 (또는 그 CACHE MANIFEST행 바로 뒤에 )은 처음 다운로드 된 후에 명시 적으로 캐시됩니다.
+
+NETWORK:
+NETWORK:캐시 매니페스트 파일 의 섹션 머리글 아래에 나열된 파일은 서버에 연결해야하는 흰색 목록의 리소스입니다. 
+이러한 자원에 대한 모든 요청은 사용자가 오프라인 인 경우에도 캐시를 우회합니다. 
+와일드 카드를 사용할 수 있습니다.
+
+FALLBACK:
+이 FALLBACK:섹션에서는 리소스에 액세스 할 수없는 경우 브라우저가 사용해야하는 대체 페이지를 지정합니다. 
+이 섹션의 각 항목에는 두 개의 URI가 나열됩니다. 
+첫 번째 항목은 리소스이고 두 번째 항목은 대체 목록입니다. 
+두 URI는 상대 경로 여야하며 매니페스트 파일과 동일한 원본에서 가져와야합니다. 
+와일드 카드를 사용할 수 있습니다.
+
+브라우저는 매니페스트 파일이 변경되면 바이트 단위로만 응용 프로그램 캐시를 업데이트합니다. 
+캐시 된 리소스를 변경하는 경우 (예 : header.png이미지를 새 콘텐츠로 업데이트하는 경우 ) 
+브라우저에서 캐시를 새로 고쳐야한다는 사실을 알리려면 매니페스트 파일의 내용을 변경해야합니다. 
+매니페스트 파일에 원하는대로 변경할 수 있지만 버전 번호를 수정하는 것이 좋습니다.
+
+
+주의!
+매니페스트 파일(예: manifest.appcache)은 캐시 항목에 추가할 필요 없다.
+캐시 매니페스트 파일에 manifest="" 속성을 통해 자신을 등록한 html 파일이 나열되지 않은 경우, 응용 프로그램 캐시에 마스터 항목으로 추가
+이 말은 다시 말해서 사용자가 manifest 속성이 지정된 어떤 페이지를 접근하면, 그 페이지가 메니페스트 파일 안에 명시적으로 포함되어있지 않아도, application cache에 암묵적으로 추가한다는 말이다. 
+따라서 캐싱하려는 html 페이지를 메니페스트 파일에 포함시킬 필요는 없다.
+* 정리: manifest="" 속성을 사용하는 html페이지는 자동으로 캐시 추가, 그러므로 html파일을 수정할 경우 캐시에서 과거 html을 불러오지 않도록 .appcache 파일수정 필요
+-->
+<html lang="ko" class="" manifest="/test/manifest.appcache">
+<head>
+<meta charset="UTF-8">
+<title>manifest appcache - 오프라인웹</title>
+<!-- CSS //-->
+<style type="text/css">
+	
+</style>
+<!-- JS //-->
+<script>
+// 캐시 사용해서 html를 로드 할 경우 온라인 확인 
+console.log('window.navigator.onLine', window.navigator.onLine);
+
+// manifest="" 캐시 상태값 확인 (자바스크립트로 캐시 업데이트)
+if('applicationCache' in window) {
+    console.log('[applicationCache] support (manifest)');
+    try {
+        // 사용자 캐시 갱신 시도
+        window.applicationCache.update(); 
+    }catch(e) {
+        console.log(e);
+    }
+
+    window.addEventListener('load', function(e) {
+        window.applicationCache.addEventListener('updateready', function(event) {
+            console.log('[applicationCache] updateready event', event);
+            console.log(window.applicationCache);
+            if(window.applicationCache.status == window.applicationCache.UPDATEREADY) {
+                // 브라우저가 새로운 캐시를 다운로드
+                // 사용자가 변경된 캐시 데이터로 화면을 볼 수 있도록 reload
+                if(confirm('A new version of this site is available. Load it?\n(applicationCache)')) {
+                    window.location.reload();
+                }
+            }else {
+                // 변경된 캐시 내용 없음
+            }
+        }, false);
+    });
+
+    function handleCacheEvent(e) {
+        console.log('[applicationCache] handleCacheEvent', e);
+        switch(window.applicationCache.status) {
+            case window.applicationCache.UNCACHED: // UNCACHED == 0
+                // 페이지가 캐쉬를 사용하지 않거나, 맨 처음 접속시에 캐쉬가 다운로드 되기 전까지는 UNCACHED 상태이다. 
+                console.log('[applicationCache] UNCACHED');
+                break;
+            case window.applicationCache.IDLE: // IDLE == 1
+                // 브라우저가 최신버전의 Application Cache 로 업데이트되었고, 더 이상 다운로드 할 업데이트 버전이 없는 상태 
+                console.log('[applicationCache] IDLE');
+                break;
+            case window.applicationCache.CHECKING: // CHECKING == 2
+                // Manifest 파일이 업데이트 되었는지를 체크하는 상태 (현재 캐쉬된 Manifest 파일과 서버의 Manifest 파일을 바이트단위로 비교한다) 
+                console.log('[applicationCache] CHECKING');
+                break;
+            case window.applicationCache.DOWNLOADING: // DOWNLOADING == 3
+                // 캐쉬할 파일들을 다운로드 하는 상태 (2번 단계에서 Manifest 파일이 업데이트되었다고 알게 되었을 때) 
+                console.log('[applicationCache] DOWNLOADING');
+                break;
+            case window.applicationCache.UPDATEREADY:  // UPDATEREADY == 4
+                // 새로운 캐쉬의 다운로드가 끝나고 사용할 준비가 되었을 때 (아직 이 캐쉬가 사용된건 아님) 
+                console.log('[applicationCache] UPDATEREADY');
+                // 새로 다운로드 받은 캐쉬와 현재 사용중인 캐쉬를 강제로 교체하는 함수 (swapCache)
+                window.applicationCache.swapCache();
+                break;
+            case window.applicationCache.OBSOLETE: // OBSOLETE == 5
+                // Manifest 파일 자체를 찾을 수 없을 때, 상태는 OBSOLETE로 지정되며 캐쉬는 삭제된다. 
+                console.log('[applicationCache] OBSOLETE');
+                break;
+            default:
+                console.log('[applicationCache] UKNOWN CACHE STATUS');
+                break;
+        }; 
+	}
+	
+	function handleCacheError(e) {
+        alert('[applicationCache] Error! Cache failed to update!');
+	};
+	
+	// 메니페스트이 리소스가 모두 캐싱된 후 발생.
+	window.applicationCache.addEventListener('cached', handleCacheEvent, false);
+	
+	// 메니페스트를 새로 가져와 캐시 갱신을 해야 하는지 확인. 과정상 항상 가장 먼저 발생.
+	window.applicationCache.addEventListener('checking', handleCacheEvent, false);
+	
+	// 갱신된 것을 찾았다. 브라우저가 리소스를 다운로드 시작.
+	window.applicationCache.addEventListener('downloading', handleCacheEvent, false);
+	
+	// 메이페스트의 모두 다운로드 완료후 발생.
+	window.applicationCache.addEventListener('noupdate', handleCacheEvent, false);
+	
+	// 메니페스트 파일에 대한 응답이 404나 410 이면 발생한다. 
+	// 앱 캐시 안의 내용이 삭제 된다. 
+	window.applicationCache.addEventListener('obsolete', handleCacheEvent, false);
+	
+	// 메니페스트 파일에 나열된 각 리소스를 모두 가져오면 발생
+	window.applicationCache.addEventListener('progress', handleCacheEvent, false);
+	
+	// 메니페스트의 리소스들이 새로 다시 다운로드 되었을때 발생.
+    window.applicationCache.addEventListener('updateready', handleCacheEvent, false);
+    
+    // 메니페스트 파일에 대한 응답이 404나 410, 다운로드 실패, 
+	// 아니면 다운로드가 진행중인데 메니페스트가 변경됬을때.
+	window.applicationCache.addEventListener('error', handleCacheError, false);
+}
+</script>
+</head>
+<body>
+TEST!
+</body>
+</html>

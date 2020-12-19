@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, width=device-width, minimal-ui" />
+<title>PWA WorkBox Test</title>
+
+<!-- web app manifest //-->
+<!-- .webmanifest 확장자는 W3C manifest 명세에 명시적으로 언급 //-->
+<!-- https://www.w3.org/TR/appmanifest/ //-->
+<!-- https://manifest-validator.appspot.com/ //-->
+<!-- Chrome requires a 192x192px and a 512x512px icon -->
+<link rel="manifest" href="/manifest/manifest.webmanifest">
+
+<!-- manifest 브라우저별 호환성을 맞춰주는 google 에서 제공되는 라이브러리 //-->
+<!--script async src="path/to/pwacompat.min.js"></script-->
+
+<!-- CSS //-->
+<link rel="stylesheet" type="text/css" href="/css/font.css">
+<style>
+body { font-family: 'Nanum Barun Gothic', Arial, Helvetica, sans-serif; }
+</style>
+</head>
+<body class="">
+<!--
+테스트 케이스
+동일한 파일명으로 JS, CSS, IMAGE 파일변경했을 때, 적용되는지 여부 (반대로 파일명 새로 추가한 HTML 코드 적용되는지 여부)
+
+> staleWhileRevalidate 캐시정책에서 확인결과
+1. 서비스워커를 통해 캐시 저장된 파일 
+2. 동일한 파일명으로 다른 파일 덮어쓰기 
+3. 사용자가 웹페이지 접근 
+4. 캐시정책에 따라 서비스워커에 저장된 것 불러오고, 서버에 저장된 변경된 이미지로 캐시 저장 
+5. 다음 접속시 변경된 파일로 캐시에서 불러온다.
+-->
+<img src="/test/image/bg1.jpg" width="100" />
+<img src="/test/image/bg2.jpg" width="100" />
+<script src="/test/javascript/test1.js"></script>
+<script src="/test/javascript/test2.js"></script>
+
+<!-- JS //-->
+<script src="//code.jquery.com/jquery-1.12.0.min.js"></script>
+<script type="text/javascript">
+// Check that service workers are supported
+if('serviceWorker' in navigator) {
+	// Use the window load event to keep the page load performant
+	window.addEventListener('load', () => {
+		navigator.serviceWorker.register('/serviceworker-workbox.js');
+	});
+}
+</script>
+</body>
+</html>

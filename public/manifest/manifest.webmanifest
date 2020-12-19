@@ -1,0 +1,58 @@
+{
+	"lang": "ko",
+	"dir": "/test",
+	"name": "makestory test",
+	"description": "makestory. by Yu Sung-min",
+	"short_name": "makestory test",
+	"gcm_sender_id": "903787206038",
+	"gcm_user_visible_only": true,
+	"icons": [
+		{
+			"src": "/images/48x48.png",
+			"type": "image/png",
+			"sizes": "48x48"
+		},
+		{
+			"src": "/images/72x72.png",
+			"type": "image/png",
+			"sizes": "72x72"
+		},
+		{
+			"src": "/images/96x96.png",
+			"type": "image/png",
+			"sizes": "96x96"
+		},
+		{
+			"src": "/images/144x144.png",
+			"type": "image/png",
+			"sizes": "144x144"
+		},
+		{
+			"src": "/images/192x192.png",
+			"type": "image/png",
+			"sizes": "192x192"
+		},
+		{
+			"src": "/images/512x512.png",
+			"type": "image/png",
+			"sizes": "512x512"
+		}
+	],
+	"start_url": "/test/pwa.html",
+	"display": "standalone",
+	"orientation": "portrait",
+	"theme_color": "#FFF",
+	"background_color": "#FFF",
+	"serviceworker": {
+		"src": "/test/serviceworker.js",
+		"scope": "/test",
+		"update_via_cache": "none"
+	},
+	"screenshots": [
+		{
+			"src": "/images/512x512.png",
+			"type": "image/png",
+			"sizes": "512x512"
+		}
+	]
+} 

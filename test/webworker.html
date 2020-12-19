@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Web Worker</title>
+</head>
+<body>
+
+<!-- JS //-->
+<script id="worker" type="javascript/worker">
+// This script won't be parsed by JS engines
+// because its type is javascript/worker.
+self.onmessage = function(e) {
+	self.postMessage('msg from worker');
+};
+// Rest of your worker code goes here.
+</script>
+<script>
+// Blob 사용 가상 URL생성한 예제 
+var blob = new Blob([document.querySelector('#worker').textContent]); // IE10이상 사용가능
+var worker = new Worker(window.URL.createObjectURL(blob));
+worker.onmessage = function(e) {
+	console.log("Received: " + e.data);
+};
+worker.postMessage(''); // Start the worker. (파라미터값 필수)
+</script>
+<script>
+// 라이브러리 형태 예제 
+function QueryableWorker(url, defaultListener, errorListener) {
+	var that = this;
+	var worker = new Worker(url);
+	var listeners = {}; // 사용자 실행 함수(워커에서 반환되는 데이터가 실행)
+
+	// 기본 리스너 등록 
+	if(typeof defaultListener === 'function') {
+		this.defaultListener = defaultListener;
+	}else {
+		this.defaultListener = function() {};
+	}
+	// 에러 리스너 등록 
+	if(typeof errorListener === 'function') {
+		worker.onerror = errorListener;
+	}
+	
+	this.postMessage = function(message) {
+		worker.postMessage(message);
+	};
+	this.terminate = function() {
+		worker.terminate();
+	};
+	this.addListener = function(key, listener) {
+		if(key) {
+			listeners[key] = listener; 
+		}
+	};
+	this.removeListener = function(key) { 
+		if(key && key in listeners) {
+			return delete listeners[key];
+		}
+	};
+
+	// worker 로 데이터 전송 
+	this.request = function() {
+		if(arguments.length < 1) {
+			throw new TypeError('request takes at least one argument'); 
+			return;
+		}
+		// worker 내부 실행 함수명, 파라미터 값 
+		worker.postMessage({
+			'workerMethodListener': arguments[0], // 요청 함수(또는 메소드)명
+			'workerMethodArguments': Array.prototype.slice.call(arguments, 1) // 파라미터 
+		});
+	}
+
+	// worker 로 부터 받은 데이터  
+	worker.onmessage = function(event) {
+		// 사용자가 미리 등록해둔 listener 중 해당되는 것 실행 
+		if(event.data instanceof Object && event.data.hasOwnProperty('clientMethodListener') && event.data.hasOwnProperty('clientMethodArguments')) {
+			listeners[event.data.clientMethodListener].apply(that, event.data.clientMethodArguments);
+		}else {
+			that.defaultListener.call(that, event.data);
+		}
+	}
+}
+
+// 웹 워커 호출 
+var myTask = new QueryableWorker('webworker.js');
+myTask.addListener('printStuff', function(result) {
+	alert(result);
+});
+myTask.addListener('doAlert', function(time, unit) {
+	alert('Worker waited for ' + time + ' ' + unit + ' :-)');
+});
+</script>
+
+
+
+<ul>
+	<li><a href="#" id="test1">What is the difference between 5 and 3?</a></li>
+	<li><a href="#" id="test2">Wait 3 seconds</a></li>
+	<li><a href="#" id="test3">terminate() the Worker</a></li>
+</ul>
+<script src="http://code.jquery.com/jquery-1.12.0.min.js"></script>
+<script>
+$('#test1').on('click', function() {
+	myTask.request('getDifference', 5, 3);
+});
+$('#test2').on('click', function() {
+	myTask.request('waitSomeTime');
+});
+$('#test3').on('click', function() {
+	myTask.terminate();
+});
+</script>
+</body>
+</html>

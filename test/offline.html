@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, width=device-width, minimal-ui" />
+<title>Oops!</title>
+<!-- CSS //-->
+<style>
+
+</style>
+</head>
+<body>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="300" height="300" viewBox="0 0 480 480" style="enable-background:new 0 0 480 480;" xml:space="preserve">
+	<rect x="8" y="8" style="fill:#EA7E73;" width="464" height="64"/>
+	<path style="fill:#F7EEDA;" d="M8,472h120v-24c0-35.36,28.64-64,64-64h-88v-72H72v-96h32v-48h136h136v48h32v96h-32v72h-88c35.36,0,64,28.64,64,64v24h120V72H8V472z M240,104c8.84,0,16,7.16,16,16s-7.16,16-16,16s-16-7.16-16-16S231.16,104,240,104z"/>
+	<circle style="fill:#EA7E73;" cx="240" cy="120" r="16"/>
+	<path style="fill:#61DBDB;" d="M288,384h88v-72v-96v-48H240H104v48v96v72h88c-35.36,0-64,28.64-64,64v24h224v-24C352,412.64,323.36,384,288,384z M288,352h-96c0-26.512,21.488-48,48-48S288,325.488,288,352z"/>
+	<g><rect x="376" y="216" style="fill:#EFC062;" width="32" height="96"/><rect x="72" y="216" style="fill:#EFC062;" width="32" height="96"/><path style="fill:#EFC062;" d="M192,352h96c0-26.512-21.488-48-48-48S192,325.488,192,352z"/></g>
+	<g><path style="fill:#122333;" d="M472,0H8C3.576,0,0,3.576,0,8v464c0,4.424,3.576,8,8,8h120h224h120c4.424,0,8-3.576,8-8V8C480,3.576,476.424,0,472,0z M136,464v-16c0-30.872,25.128-56,56-56h96c30.872,0,56,25.128,56,56v16H136z M96,304H80v-80h16V304zM112,312v-96v-40h256v40v96v64h-80h-96h-80V312z M232,120c0-4.416,3.584-8,8-8c4.416,0,8,3.584,8,8s-3.584,8-8,8S232,124.416,232,120z M384,224h16v80h-16V224z M464,464H360v-16c0-22.608-10.496-42.792-26.84-56H376c4.424,0,8-3.576,8-8v-64h24c4.424,0,8-3.576,8-8v-96c0-4.424-3.576-8-8-8h-24v-40c0-4.424-3.576-8-8-8H248v-17.472c9.288-3.312,16-12.112,16-22.528c0-13.232-10.768-24-24-24s-24,10.768-24,24c0,10.416,6.712,19.216,16,22.528V160H104c-4.424,0-8,3.576-8,8v40H72c-4.424,0-8,3.576-8,8v96c0,4.424,3.576,8,8,8h24v64c0,4.424,3.576,8,8,8h42.84C130.496,405.208,120,425.392,120,448v16H16V80h448V464z M464,64H16V16h448V64z"/><rect x="32" y="32" style="fill:#122333;" width="16" height="16"/><rect x="64" y="32" style="fill:#122333;" width="16" height="16"/><rect x="96" y="32" style="fill:#122333;" width="16" height="16"/><rect x="208" y="32" style="fill:#122333;" width="240" height="16"/><polygon style="fill:#122333;" points="202.344,285.656 213.656,274.344 191.312,252 213.656,229.656 202.344,218.344 180,240.688 157.656,218.344 146.344,229.656 168.688,252 146.344,274.344 157.656,285.656 180,263.312 	"/><polygon style="fill:#122333;" points="277.656,285.656 300,263.312 322.344,285.656 333.656,274.344 311.312,252 333.656,229.656 322.344,218.344 300,240.688 277.656,218.344 266.344,229.656 288.688,252 266.344,274.344 	"/><path style="fill:#122333;" d="M288,360c4.424,0,8-3.576,8-8c0-30.872-25.128-56-56-56s-56,25.128-56,56c0,4.424,3.576,8,8,8H288zM240,312c19.32,0,35.48,13.768,39.192,32H200.8C204.52,325.768,220.68,312,240,312z"/></g>
+</svg>
+<p>Oops!</p>
+<p id="message"></p>
+
+<!-- JS //-->
+<script>
+// 오프라인/온라인 여부 
+var connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection || {};
+console.log(connection.type || null); // wifi / cellular 등
+if(window.navigator && 'onLine' in window.navigator) {
+	var setOnline = function() {
+		document.querySelector('#message').textContent = 'Please check url.';
+	};
+	var setOffline = function() {
+		document.querySelector('#message').textContent = 'Please check the network status.';
+	};
+	var isNetwork = function() {
+		console.log('window.navigator.onLine', window.navigator.onLine);
+		if(window.navigator.onLine === true) {
+			// online
+			window.location.reload(true); // Reload the current page, without using the cache
+		}else {
+			// offline
+		}
+	};
+	if(window.navigator.onLine === false) {
+		setOffline();
+		window.addEventListener('online', isNetwork);
+	}else {
+		setOnline();
+	}
+}
+</script>
+</body>
+</html>
