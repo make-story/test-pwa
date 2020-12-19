@@ -171,7 +171,7 @@ module.exports = {
 				exclude: /node_modules/, // 제외
 				use: {
 					// .babelrc 있다면 해당 파일을 먼저 참조 하며, 없을 경우 webpack options 에 부여한 presets plugins 을 참조
-					loader: 'babel-loader',  // npm install --save-dev babel-loader @babel/preset-env 
+					loader: 'babel-loader',  // npm install --save-dev babel-loader @babel/core @babel/preset-env 
 					options: {
 						// presets
 						// @babel/preset-env를 설정하여, babel에서 미리 정의해둔 환경으로 ES6에서 ES5로 변환
