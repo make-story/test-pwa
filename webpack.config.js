@@ -177,7 +177,7 @@ let setPlugins = (config={}) => {
 				// },
 			}),*/
 			//new ManifestPlugin({
-            new WebpackManifestPlugin({
+			new WebpackManifestPlugin({
 				// 파일명 - manifest.json
 				//fileName: `${env.active}.${env.build}.json`, 
 				// 경로의 기본 경로 (기본값: output.publicPath)
