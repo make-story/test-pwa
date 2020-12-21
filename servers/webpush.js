@@ -18,14 +18,14 @@ const fs = require('fs');
 const Koa = require('koa');
 const Router = require('koa-router');
 const koaCors = require('@koa/cors');
-const koaBody = require('koa-body');
+const koaBody = require('koa-body'); // HTTP 메소드 POST 같이 요청 정보를 Body에 포함하는 경우 (ctx.request.body)
 
 const paths = require(path.resolve(__dirname, '../config/paths'));
 const env = require(path.resolve(paths.appPath, 'config/env'));
 
 //const mongodb = require(path.resolve(__dirname, '../databases/mongodb')); // 몽고DB
 //const { models } = require(path.resolve(__dirname, '../databases/sequelize'));
-const mariadb = require(path.resolve(__dirname, '../databases/mariadb')); // MariaDB
+//const mariadb = require(path.resolve(__dirname, '../databases/mariadb')); // MariaDB
 //const mysql = require(path.resolve(__dirname, '../databases/mysql')); // MySQL
 const webpush = require('web-push'); // 리모트 push 연결 https://www.npmjs.com/package/web-push
 
@@ -107,7 +107,11 @@ try {
 }
 
 // 사용자 브라우저 푸시정보와 서버 푸시정보 일치여부 확인 
-router.get('/push-check', function(request, response) { 
+router.get('/push-check', (ctx, next) => {
+	// ctx; // is the Context
+	// ctx.request; // is a Koa Request
+	// ctx.response; // is a Koa Response
+
 	/*
 	vapidKeys.publicKey
 	vapidKeys.privateKey
@@ -116,8 +120,16 @@ router.get('/push-check', function(request, response) {
 	
 });
 
-// 푸시 허용
-router.post('/push-subscribe', function(request, response) { 
+// 푸시 허용 (사용자 subscribe 정보 저장)
+router.post('/push-subscribe', (ctx, next) => {
+	// ctx; // is the Context
+	// ctx.request; // is a Koa Request
+	// ctx.response; // is a Koa Response
+
+	// getter, setter 형태로 접근
+	const { request, response, cookies, params, } = ctx;
+	const { query, body, } = request;
+
 	/*
 	vapidKeys.publicKey
 	vapidKeys.privateKey
@@ -127,10 +139,20 @@ router.post('/push-subscribe', function(request, response) {
 	webpush.sendNotification(JSON.parse(request.body.subscription), payload); // 푸시발송 
 	*/
 
+	// response.type = 'text/plain; charset=utf-8' | 'image/png'
+	// response.body = string | Buffer | Stream | Object (json-stringified) | null
 });
 
 // 푸시 거부
-router.post('/push-unsubscribe', function(request, response) { 
+router.post('/push-unsubscribe', (ctx, next) => {
+	// ctx; // is the Context
+	// ctx.request; // is a Koa Request
+	// ctx.response; // is a Koa Response
+
+	// getter, setter 형태로 접근
+	const { request, response, cookies, params, } = ctx;
+	const { query, body, } = request;
+
 	/*
 	vapidKeys.publicKey
 	vapidKeys.privateKey
@@ -142,7 +164,15 @@ router.post('/push-unsubscribe', function(request, response) {
 });
 
 // 사용자가 푸시 확인했음
-router.post('/push-confirm', function(request, response) { 
+router.post('/push-confirm', (ctx, next) => {
+	// ctx; // is the Context
+	// ctx.request; // is a Koa Request
+	// ctx.response; // is a Koa Response
+
+	// getter, setter 형태로 접근
+	const { request, response, cookies, params, } = ctx;
+	const { query, body, } = request;
+
 	/*
 	request.body.subscription
 	subscription = JSON.parse(request.body.subscription);
@@ -150,21 +180,53 @@ router.post('/push-confirm', function(request, response) {
 	
 });
 
-// 푸시 관리 (발송/수정/삭제)
-router.get('/push-admin', function(request, response) { 
+// 푸시 관리 페이지 접근 (발송/수정/삭제)
+router.get('/push-admin', (ctx, next) => {
+	// ctx; // is the Context
+	// ctx.request; // is a Koa Request
+	// ctx.response; // is a Koa Response
+
+	// getter, setter 형태로 접근
+	const { request, response, cookies, params, } = ctx;
+	const { query, body, } = request;
+
 	// return html
 });
 
-// 리스트 
-router.get('/push-send', function(request, response) { 
+// 푸시 사용자 리스트 
+router.get('/push-send', (ctx, next) => {
+	// ctx; // is the Context
+	// ctx.request; // is a Koa Request
+	// ctx.response; // is a Koa Response
+
+	// getter, setter 형태로 접근
+	const { request, response, cookies, params, } = ctx;
+	const { query, body, } = request;
+
 	// return json
 });
 
-// 발송 
-router.post('/push-send', function(request, response) { 
+// 푸시 발송 
+router.post('/push-send', (ctx, next) => {
+	// ctx; // is the Context
+	// ctx.request; // is a Koa Request
+	// ctx.response; // is a Koa Response
+
+	// getter, setter 형태로 접근
+	const { request, response, cookies, params, } = ctx;
+	const { query, body, } = request;
+
 	/*
 	vapidKeys.publicKey
 	vapidKeys.privateKey
+
+	let subscription = {
+		endpoint: '< Push Subscription URL >',
+		keys: {
+			p256dh: '< User Public Encryption Key >',
+			auth: '< User Auth Secret >'
+		}
+	};
 
 	let payload = JSON.stringify({
 		'title': title, // 푸시 제목
@@ -179,7 +241,6 @@ router.post('/push-send', function(request, response) {
 		} 
 	});
 
-	// options
 	let options = {
 		gcmAPIKey: '< GCM API Key >',
 		vapidDetails: {
@@ -202,8 +263,16 @@ router.post('/push-send', function(request, response) {
 	
 });
 
-// 수정
-router.put('/push-send', function(request, response) { 
+// 푸시 사용자 정보 수정
+router.put('/push-send', (ctx, next) => {
+	// ctx; // is the Context
+	// ctx.request; // is a Koa Request
+	// ctx.response; // is a Koa Response
+
+	// getter, setter 형태로 접근
+	const { request, response, cookies, params, } = ctx;
+	const { query, body, } = request;
+
 	/*
 	vapidKeys.publicKey
 	vapidKeys.privateKey
@@ -211,8 +280,16 @@ router.put('/push-send', function(request, response) {
 	
 });
 
-// 제거 
-router.delete('/push-send', function(request, response) { 
+// 푸시 사용자 정보 제거 
+router.delete('/push-send', (ctx, next) => {
+	// ctx; // is the Context
+	// ctx.request; // is a Koa Request
+	// ctx.response; // is a Koa Response
+
+	// getter, setter 형태로 접근
+	const { request, response, cookies, params, } = ctx;
+	const { query, body, } = request;
+
 	/*
 	vapidKeys.publicKey
 	vapidKeys.privateKey
@@ -220,20 +297,23 @@ router.delete('/push-send', function(request, response) {
 
 });
 
-// 백그라운드 동기화 테스트 
-router.get('/background-sync', function(request, response) { 
-	/*
-	vapidKeys.publicKey
-	vapidKeys.privateKey
-	*/
+// 백그라운드 동기화 테스트 (네트워크가 불안정한 상태에서 다시 연결되었을 때, 서비스워커가 전송해주는 값)
+/*router.get('/background-sync', (ctx, next) => {
+	// ctx; // is the Context
+	// ctx.request; // is a Koa Request
+	// ctx.response; // is a Koa Response
+
+	// getter, setter 형태로 접근
+	const { request, response, cookies, params, } = ctx;
+	const { query, body, } = request;
+
 	
-});
+});*/
 
 // test
-mariadb.test();
+//mariadb.test();
 
 // server listen
 const server = app.listen(env.pushPort, () => {
 	console.log('WebPush Test Server', env.pushPort);
 });
-console.log('WebPush Test Server', env.pushPort);
