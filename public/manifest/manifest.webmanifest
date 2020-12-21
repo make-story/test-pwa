@@ -1,9 +1,9 @@
 {
 	"lang": "ko",
 	"dir": "/test",
-	"name": "makestory test",
-	"description": "makestory. by Yu Sung-min",
-	"short_name": "makestory test",
+	"name": "PWA test",
+	"description": "PWA. by Yu Sung-min",
+	"short_name": "PWA test",
 	"gcm_sender_id": "903787206038",
 	"gcm_user_visible_only": true,
 	"icons": [
@@ -38,14 +38,14 @@
 			"sizes": "512x512"
 		}
 	],
-	"start_url": "/test/pwa.html",
+	"start_url": "/",
 	"display": "standalone",
 	"orientation": "portrait",
 	"theme_color": "#FFF",
 	"background_color": "#FFF",
 	"serviceworker": {
-		"src": "/test/serviceworker.js",
-		"scope": "/test",
+		"src": "/serviceworker.js",
+		"scope": "/",
 		"update_via_cache": "none"
 	},
 	"screenshots": [
