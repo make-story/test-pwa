@@ -84,6 +84,14 @@ if(!webpushConfig || typeof webpushConfig !== 'object') {
 /**
  * Web Push
  * 웹푸시 프로토콜: https://tools.ietf.org/html/draft-ietf-webpush-protocol
+ * 
+ * web-push 패키지 참고 : https://github.com/web-push-libs/web-push/blob/master/src/web-push-lib.js
+ * method: POST
+ * headers: {
+ * 		Authorization: 'key=' + GCMAPIKey,
+ * 		body: {웹푸시 값들} encrypt 값,
+ * 		endpoint: subscription.endpoint,
+ * }
  */
 // FCM 프로젝트에서의 클라우딩메시징 서버키 
 // https://console.firebase.google.com/u/0/project/webpush-128d1/settings/cloudmessaging
