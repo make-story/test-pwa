@@ -82,13 +82,23 @@ if(!webpushConfig || typeof webpushConfig !== 'object') {
 }
 
 /**
- * Web Push
- * 웹푸시 프로토콜: https://tools.ietf.org/html/draft-ietf-webpush-protocol
+ * Web Push 
+ * (FCM 은 HTTP 방식, HTTP v1 방식 있음) - FCM HTTP v1 API는 수명이 짧은 OAuth 2.0 액세스 토큰을 사용하여 요청
  * 
- * web-push 패키지 참고 : https://github.com/web-push-libs/web-push/blob/master/src/web-push-lib.js
+ * 웹푸시 프로토콜
+ * https://tools.ietf.org/html/draft-ietf-webpush-protocol
+ * 
+ * HTTP 방식
+ * https://firebase.google.com/docs/cloud-messaging/auth-server#authorize-legacy-protocol-send-requests
+ * https://firebase.google.com/docs/cloud-messaging/send-message#send_using_the_fcm_legacy_http_api
+ * 
+ * web-push 패키지 참고
+ * https://github.com/web-push-libs/web-push/blob/master/src/web-push-lib.js
+ * 
  * method: POST
  * headers: {
- * 		Authorization: 'key=' + GCMAPIKey,
+ * 		Content-Type: 'application/octet-stream', // 'application/json', 'application/x-www-form-urlencoded;charset=UTF-8'
+ * 		Authorization: 'key=' + GCMAPIKey, // YOUR_SERVER_KEY
  * 		body: {웹푸시 값들} encrypt 값,
  * 		endpoint: subscription.endpoint,
  * }
