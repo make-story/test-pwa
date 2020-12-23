@@ -371,7 +371,7 @@ window.addEventListener('load', function() {
 
 
 		-
-		기본 스코프
+		기본 스코프 (중요!)
 		서비스워커 등록파일(설치파일) 경로 기준, 서비스워커 하위경로 파일들은 서비스워커의 fetch 를 모두 거친다. (서비스워커 파일 경로의 중요성!)
 		또는 fetch 스코프 지정이 가능하다. (register 두번째 파라미터 옵션값 지정 가능)
 		> 옵션으로 스코프 지정: navigator.serviceWorker.register('/test/serviceworker.js', {scope: '/test/'})
@@ -386,7 +386,7 @@ window.addEventListener('load', function() {
 
 
 		-
-		서비스워커 업데이트가 발생하는 경우
+		서비스워커 업데이트가 발생하는 경우 (중요!)
 		> navigator.serviceWorker.register() 신규 호출
 		> 브라우저에 의한 자동 Update - 기존 등록된 서비스워커와 다른 파일내부 변경이력, HTTP Header Cache-Control max-age(최대24시간), 개발자도구 Service Workers 탭의 'Update on Reload' 페이지 새로고침시 업데이트 체크 등
 		> client request 처리시 - fetch
@@ -452,6 +452,16 @@ window.addEventListener('load', function() {
 			registration.sync.register('image-fetch').then(() => {
 				console.log('Sync registered');
 			});
+		});*/
+
+
+		// 스코프에 해당하는 registration 반환
+		// https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/getRegistration
+		// navigator.serviceWorker.getRegistration('scope')
+		/*navigator.serviceWorker.getRegistration('/app').then(function(registration) {
+			if(registration){
+				// ...
+			}
 		});*/
 
 
