@@ -574,6 +574,24 @@ window.addEventListener('load', function() {
 						break;
 				}
 			});
+
+			// pushManager
+			// https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/pushManager
+			registration.pushManager.subscribe()
+			.then(function(subscription) {
+				console.log('[Browser] pushManager');
+				console.log(subscription.subscriptionId);
+				console.log(subscription.endpoint);
+				// The push subscription details needed by the application
+				// server are now available, and can be sent to it using,
+				// for example, an XMLHttpRequest.
+			}, function(error) {
+				// During development it often helps to log errors to the
+				// console. In a production environment it might make sense to
+				// also report information about errors back to the
+				// application server.
+				console.log(error);
+			});
 		})
 		.catch(function(error) {
 			console.log('[Browser] ServiceWorker registration failed', error);
@@ -614,7 +632,8 @@ window.addEventListener('load', function() {
 		// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- 
 
 
-		// 서비스워커 활성화 - 서비스워커 파일 등록 후 다시 재접속했을 때 활성화 
+		// 서비스워커 활성화(active)될 때까지 대기
+		// 서비스워커가 활성화되면 then 실행
 		navigator.serviceWorker.ready
 		.then(function(registration) {
 			console.log('[Browser] 서비스워커 활성화(active) 되었음', registration.active);
