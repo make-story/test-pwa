@@ -589,11 +589,11 @@ self.addEventListener('push', function(event) {
 	options = {
 		// Visual Options
 		body: 'body' in json ? json.body : payload, // event.data.text();
-		icon: 'icon' in json ? json.icon : '/image/mobile76x76.png', // 푸시 알람에 표시될 앱 아이콘을 의미
-		image: 'image' in json ? json.image : '', // 알람 창 안에 이미지를 표시하는 역할
-		badge: 'badge' in json ? json.badge : '/image/mobile76x76.png', // 배지는 모바일에서만 동작하는 속성입니다. 모바일에서 알람을 받을 때 상단 상태 바에 알람이 표시되는데, 어디서 알람이 알 수 있는 조그만아이콘을 의미
-		vibrate: 'vibrate' in json && Array.isArray(json.vibrate) ? json.vibrate : [200, 100, 200, 100, 200, 100, 400], // 알람이 표시될 때 진동 패턴을 정의 (무음모드가 아닐 경우)
-		sound: 'sound' in json ? json.sound : '', // 알람이 표시될 때 나는 소리를 지정 - '/xx.mp3'
+		icon: 'icon' in json ? json.icon : '/image/mobile76x76.png', 
+		image: 'image' in json ? json.image : '', 
+		badge: 'badge' in json ? json.badge : '/image/mobile76x76.png', 
+		vibrate: 'vibrate' in json && Array.isArray(json.vibrate) ? json.vibrate : [200, 100, 200, 100, 200, 100, 400], // window.navigator.vibrate([200, 100, 200]);
+		sound: 'sound' in json ? json.sound : '', 
 		//dir: "<String of 'auto' | 'ltr' | 'rtl'>", // 방향, 텍스트를 오른쪽에서 왼쪽으로 또는 왼쪽에서 오른쪽으로 표시 할 방향을 정의
 
 		// Both visual & behavioral options

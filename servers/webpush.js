@@ -229,14 +229,34 @@ router.post('/push-send', (ctx, next) => {
 	};
 
 	let payload = JSON.stringify({
-		'title': title, // 푸시 제목
-		'body': body, // 푸시 내용
-		'icon': icon, // 푸시 알람에 표시될 앱 아이콘을 의미
-		'badge': badge, // 배지는 모바일에서만 동작하는 속성입니다. 모바일에서 알람을 받을 때 상단 상태 바에 알람이 표시되는데, 어디서 알람이 알 수 있는 조그만아이콘을 의미
-		'image': image, // 알람 창 안에 이미지를 표시하는 역할
-		'vibrate': [200, 100, 200, 100, 300], // 알람이 표시될 때 진동 패턴을 정의 (무음모드가 아닐 경우)
-		'sound': '/sound/alarm.mp3', // 알람이 표시될 때 나는 소리를 지정 - '/xx.mp3'
-		'params': { // 사용자 정의 데이터 (사용자가 별도로 params 라는 값을 넣어서 보냄)
+		// 푸시 제목
+		'title': title, 
+
+		// 푸시 내용
+		'body': body, 
+
+		// 푸시 알람에 표시될 아이콘
+		// 256x256 | larger (jpg, png, gif, webp, ico, cur, bmp)
+		'icon': icon, 
+
+		// 배지는 모바일에서만 동작하는 속성
+		// 모바일에서 알람을 받았을 때, 상단 상태 바에 표시되는 작은 아이콘
+		// 72x72 | larger (png, gif, webp, ico, cur, bmp)
+		'badge': badge, 
+
+		// 알람 창 안에 이미지를 표시
+		// 512x256px | 1440x720px (jpg, png, gif, webp, ico, cur, bmp)
+		'image': image, 
+
+		// 알람이 표시될 때 진동 패턴을 정의 (무음모드가 아닐 경우)
+		// window.navigator.vibrate([200, 100, 200]);
+		'vibrate': [200, 100, 200, 100, 300], 
+
+		// 알람이 표시될 때 나는 소리를 지정 - '/xx.mp3'
+		'sound': '/sound/alarm.mp3', 
+
+		// 사용자 정의 데이터 (사용자가 별도로 params 라는 값을 넣어서 보냄)
+		'params': { 
 			'url': url
 		} 
 	});
