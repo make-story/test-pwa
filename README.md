@@ -11,7 +11,7 @@ http://makestory.net/media/#/view/767
   
 ----------
   
-> Firebase 이용한 방법(웹푸시)  
+> Firebase 클라우드 메시징(FCM) 이용한 방법(웹푸시)  
 https://firebase.google.com/docs/cloud-messaging  
     
 > FCM 서버와 상호작용할 수 있는 방법  
