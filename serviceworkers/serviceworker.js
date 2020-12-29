@@ -346,7 +346,7 @@ self.addEventListener('fetch', function(event) {
 			var fetchRequest;
 
 			// Request method POST 경우 cache에 바로 저장못하며, indexedDB 등에 저장하는 별도 로직 필요
-			if(event.request.method === 'POST' || NETWORK_LIST.indexOf(requestURL.pathname) !== -1) {
+			if(event.request.method !== 'GET' || NETWORK_LIST.indexOf(requestURL.pathname) !== -1) {
 				// 1. 네트워크 리소스 요청 / 응답 반환
 				// 캐시에 없으므로 네트워크 요청을 한다.
 				// 해당 호출은 네트워크 요청을 수행하고 네트워크에서 검색한 데이터가 있으면 해당 데이터를 반환합니다. 
