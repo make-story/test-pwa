@@ -30,7 +30,7 @@ const SOCKET_URL = process.env.SOCKET_URL || `ws://127.0.0.1:${SOCKET_PORT}`;
 const MONGODB_PORT = process.env.MONGODB_PORT || 27017;
 const MONGODB_HOST = process.env.MONGODB_HOST || `127.0.0.1:${MONGODB_PORT}`; // 'mongodb://localhost' 로 연결이 안될 때가 있음 - 도커를 사용할 경우 해당 컨테이너명 설정
 const MONGODB_DB = process.env.MONGODB_DB || 'webpush';
-const PUSH_PORT = process.env.SOCKET_PORT || 9020;
+const PUSH_PORT = process.env.PUSH_PORT || 9020;
 
 // argv
 // node <실행 파일> --옵션키 옵션값
