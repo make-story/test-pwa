@@ -179,18 +179,17 @@ module.exports = {
 						// Babel이 제공하는 공식 Babel 프리셋(Official Preset) : @babel/preset-env, @babel/preset-flow, @babel/preset-react, @babel/preset-typescript
 						// @babel/preset-env도 공식 프리셋의 하나이며 필요한 플러그인 들을 프로젝트 지원 환경에 맞춰서 동적으로 결정해 준다.
 						//presets: ['@babel/preset-env'] 
-						"presets": [
+						presets: [
+							//"@babel/preset-typescript",
 							[
 								"@babel/preset-env", 
-								//"@babel/preset-typescript",
 								{
 									// async / await 사용때문에 크롬버전 지정
 									"targets": {"chrome": "55"}, // chrome 55 이상으로 지정 
 									"debug": true
 								},
-							]
+							],
 						],
-
 						// plugins 
 						plugins: [
 							'@babel/plugin-syntax-dynamic-import', // 다이나믹 import (System.import 는 더이상 사용되지 않습니다.) - import 방식이 require.ensure보다 더 좋습니다. (import 방식은 catch 를 활용해 에러가 났을 때 대처)
