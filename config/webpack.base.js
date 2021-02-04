@@ -164,6 +164,17 @@ module.exports = {
 				}
 			},
 			// 자바스크립트 관련 (트랜스파일러 등)
+			/*{
+				test: /\.js$/,
+				exclude: /node_modules|dist/,
+				loader: 'eslint-loader',
+				enforce: 'pre',
+				options: {
+					configFile: './.eslintrc.js',
+					failOnWarning: false,
+					failOnError: false
+				}
+			},*/
 			{
 				test: /\.js?$/,
 				//test: /\.(js|mjs|jsx|ts|tsx)$/,

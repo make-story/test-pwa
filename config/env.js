@@ -32,14 +32,17 @@ const MONGODB_HOST = process.env.MONGODB_HOST || `127.0.0.1:${MONGODB_PORT}`; //
 const MONGODB_DB = process.env.MONGODB_DB || 'webpush';
 const PUSH_PORT = process.env.PUSH_PORT || 9020;
 
-// argv
-// node <실행 파일> --옵션키 옵션값
+// 쉘 명령에서 '--옵션값' 존재여부
+// $ node <실행 파일> --옵션키
+const isArgv = (argv) => process.argv.indexOf(`--${argv}`) >= 0;
+// 쉘 명령에서 '--옵션키'의 '옵션값' 반환
+// $ node <실행 파일> --옵션키 옵션값
 const getArgv = (argv) => {
+	let value = null;
 	if(process.argv.includes(`--${argv}`) && process.argv[process.argv.indexOf(`--${argv}`)+1]) {
-		return process.argv[process.argv.indexOf(`--${argv}`)+1];
-	}else {
-		return null;
+		value = process.argv[process.argv.indexOf(`--${argv}`)+1];
 	}
+	return value;
 };
 
 // process env 콜솔 로그 출력 
@@ -97,6 +100,7 @@ module.exports = {
 	mongoHost: MONGODB_HOST,
 	mongoDB: MONGODB_DB,
 	pushPort: PUSH_PORT,
+	isArgv,
 	argv: getArgv,
     buildConsoleLog: setBuildConsoleLog,
 };
