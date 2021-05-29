@@ -7,10 +7,23 @@ Koa 프레임워크는 Express 의 기존 개발 팀이 소유권을 IBM에 넘�
 Express 를 리팩토링한 결과물이며, 기존 Express 에 비해 아키텍처가 많이 바뀌어서 버전을 높이지 않고 새 이름을 붙였다고 합니다.
 Koa 는 Express에 비해 훨씬 가볍고, Node v7.6 부터 정식으로 지원하는 async/await 문법을 아주 편하게 사용할 수 있습니다. 따라서 콜백을 무수하게 사용하는 콜백 지옥을 겪을 일도 없고, 비동기 작업도 편리하게 관리할 수 있습니다.
 
+
+-
+GCM (Goggle Cloud Messaging)
+FCM (Firebase Cloud Messaging)프로젝트에서의 클라우딩메시징 서버키 필요 
+
+
 -
 키를 다시 생성해야 하는 경우 - webpush.generateVAPIDKeys()
 firebase 서버키(GCMAPIKey) 변경된 경우
 publicKey 또는 privateKey 변경된 경우
+
+const webpush = require('web-push');
+const vapidKeys = webpush.generateVAPIDKeys();
+console.log(vapidKeys.publicKey);
+console.log(vapidKeys.privateKey);
+process.exit();
+
 
 -
 참고 자료
@@ -109,16 +122,16 @@ let { GCMAPIKey=''/*Google Cloud Messaging API Key*/, publicKey=''/*공개키 : 
 try {
 	webpush.setGCMAPIKey(GCMAPIKey);
 	webpush.setVapidDetails('mailto:yu9221@gmail.com', publicKey, privateKey);
-}catch(err) {
+}catch(error) {
 	// publicKey / privateKey 오류가 있을 경우 키 재생성 해야한다.
-	console.log('FCM 값 설정 에러!', err);
+	console.log('FCM 값 설정 에러!', error);
 	// publicKey / privateKey 키 재생성
-	//let vapidKeys = getGenerateVAPIDKeys(); 
-	//publicKey = vapidKeys.publicKey;
-	//privateKey = vapidKeys.privateKey;
-	//console.log('VAPIDKeys 신규 생성', vapidKeys); // 보안 주의!
-	//process.exit();
+	// publicKey / privateKey 키 재생성
+	({ publicKey, privateKey, } = getGenerateVAPIDKeys()); 
+	console.log('VAPIDKeys 신규 생성', `${publicKey} / ${privateKey}`); // 보안 주의!
+	process.exit();
 }
+
 // subscription
 // 사용자 페이지에서 공개키 + registration.pushManager.subscribe 함수를 통해 생성되는 각 클라이언트(구분) 정보
 /*subscription = {
