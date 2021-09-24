@@ -1,4 +1,4 @@
-//require('dotenv').config(); // 환경변수들을 파일(.env)에 넣고 사용할 수 있게 하는 개발도구
+//require('dotenv').config({ path: '/custom/path/to/.env' }); // 환경변수들을 파일(.env)에 넣고 사용할 수 있게 하는 개발도구
 
 /*
 process.env
